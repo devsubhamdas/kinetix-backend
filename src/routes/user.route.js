@@ -5,6 +5,7 @@ import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
+// user register
 router.route("/register").post(
   upload.fields([
     { name: "avatar", maxCount: 1 },
@@ -13,8 +14,10 @@ router.route("/register").post(
   registerUser
 );
 
+// user login
 router.route("/login").post(loginUser);
 
+// user logout
 router.route("/logout").post(verifyJWT, logoutUser);
 
 export default router;

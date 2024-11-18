@@ -6,7 +6,7 @@ import User from "../models/user.model.js";
 const verifyJWT = asyncHandler(async (req, _, next) => {
   try {
     // get access token
-    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer", "");
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "");
   
     //verify token
     if(!token) {
@@ -21,14 +21,14 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
   
     // verify user
     if(!user) {
-      throw new ApiError(401, `Invalid access token:: ${error?.message}`);
+      throw new ApiError(401, "Invalid access token");
     }
   
     // set user
     req.user = user;
     next();
   } catch (error) {
-    throw new ApiError(401, "Invalid access token");
+    throw new ApiError(401, `Invalid access token:: ${error?.message}`);
   }
 });
 

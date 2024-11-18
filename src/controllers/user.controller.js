@@ -41,6 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // get form data and files
   const { username, email, password, fullName } = req.body;
+  console.log(username, email);
 
   const avatarLocalPath =
     req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
@@ -111,7 +112,7 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, newUser, "User registered successfully"));
 });
 
-// LOGIN USER
+// VALIDATE AND LOGIN USER
 const loginUser = asyncHandler(async (req, res) => {
   // steps:
   // get user details from frontend - username or email and password
@@ -125,6 +126,9 @@ const loginUser = asyncHandler(async (req, res) => {
   // validate empty field
   if (!username && !email) {
     throw new ApiError(400, "Username or Email required");
+  }
+  if (!password) {
+    throw new ApiError(400, "Password required");
   }
 
   // find user
@@ -158,8 +162,8 @@ const loginUser = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .cookies("accessToken", accessToken, options)
-    .cookies("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(200, {
         accessToken,
@@ -173,7 +177,7 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
   // delete refresh token from database
   await User.findByIdAndUpdate(req.user._id, {
-    $set: { refreshToken: undefined },
+    $unset: { refreshToken: "" },
   });
 
   // delete cookie
@@ -182,11 +186,11 @@ const logoutUser = asyncHandler(async (req, res) => {
     secure: true,
   };
 
-  res.status(200)
-  .clearCookies("accessToken", options)
-  .clearCookies("refreshToken", options)
-  .json(new ApiResponse(200, {}, "User logged out successfully"));
-
+  res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
 export { registerUser, loginUser, logoutUser };
