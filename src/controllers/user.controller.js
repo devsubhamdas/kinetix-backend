@@ -10,6 +10,22 @@ const deleteTempFilesOnFail = (localFilePaths) => {
   localFilePaths.forEach((filePath) => filePath && fs.unlinkSync(filePath));
 };
 
+const generateAccessTokenAndRefreshToken = async (userId) => {
+  try {
+    const user = await User.findById(userId);
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({ validateBeforeSave: false });
+    return { accessToken, refreshToken };
+  } catch (error) {
+    throw new ApiError(
+      500,
+      `Something went wrong while generating tokens:: ${error?.message}`
+    );
+  }
+};
+
 // VALIDATE AND CREATE NEW USER
 const registerUser = asyncHandler(async (req, res) => {
   // steps:
@@ -27,17 +43,17 @@ const registerUser = asyncHandler(async (req, res) => {
   const { username, email, password, fullName } = req.body;
 
   const avatarLocalPath =
-  req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
-  ? req.files.avatar[0].path
-  : undefined;
-  
+    req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
+      ? req.files.avatar[0].path
+      : undefined;
+
   const coverImageLocalPath =
-  req.files &&
-  Array.isArray(req.files.coverImage) &&
-  req.files.coverImage.length > 0
-  ? req.files.coverImage[0].path
-  : undefined;
-  
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+      ? req.files.coverImage[0].path
+      : undefined;
+
   // validate for empty fields
   if (
     [username, email, password, fullName].some((field) => field?.trim() === "")
@@ -45,7 +61,7 @@ const registerUser = asyncHandler(async (req, res) => {
     deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(400, "Empty field not allowed");
   }
-  
+
   // validate for no avatar or image
   if (!avatarLocalPath) {
     deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
@@ -61,7 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
     deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(409, "User already exists");
   }
-  
+
   // upload file to cloudinary
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
@@ -95,4 +111,82 @@ const registerUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, newUser, "User registered successfully"));
 });
 
-export { registerUser };
+// LOGIN USER
+const loginUser = asyncHandler(async (req, res) => {
+  // steps:
+  // get user details from frontend - username or email and password
+  // find user using username or email
+  // verify password
+  // get access and refresh token
+  // send cookie
+
+  const { username, email, password } = req.body;
+
+  // validate empty field
+  if (!username && !email) {
+    throw new ApiError(400, "Username or Email required");
+  }
+
+  // find user
+  const user = await User.findOne({ $or: [{ username }, { email }] });
+
+  // no user found
+  if (!user) {
+    throw new ApiError(404, "No user found");
+  }
+
+  // verify password
+  const isPasswordValid = await user.isPasswordCorrect(password);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "Invalid password");
+  }
+
+  // generate access and refresh token
+  const { accessToken, refreshToken } =
+    await generateAccessTokenAndRefreshToken(user._id);
+
+  // loggedin user
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken"
+  );
+
+  // send cookie and response
+  const options = {
+    httpOnly: true, // modifiable only from server
+    secure: true,
+  };
+
+  return res
+    .status(200)
+    .cookies("accessToken", accessToken, options)
+    .cookies("refreshToken", refreshToken, options)
+    .json(
+      new ApiResponse(200, {
+        accessToken,
+        refreshToken,
+        user: loggedInUser,
+      })
+    );
+});
+
+// LOGOUT USER
+const logoutUser = asyncHandler(async (req, res) => {
+  // delete refresh token from database
+  await User.findByIdAndUpdate(req.user._id, {
+    $set: { refreshToken: undefined },
+  });
+
+  // delete cookie
+  const options = {
+    httpOnly: true,
+    secure: true,
+  };
+
+  res.status(200)
+  .clearCookies("accessToken", options)
+  .clearCookies("refreshToken", options)
+  .json(new ApiResponse(200, {}, "User logged out successfully"));
+
+});
+
+export { registerUser, loginUser, logoutUser };
