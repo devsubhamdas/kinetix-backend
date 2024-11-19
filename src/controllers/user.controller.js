@@ -62,13 +62,13 @@ const registerUser = asyncHandler(async (req, res) => {
     [username, email, password, fullName].some((field) => field?.trim() === "")
   ) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
-    throw new ApiError(400, "Empty field not allowed");
+    throw new ApiError(400, "REGISTRATION ERROR:: Empty field not allowed");
   }
 
   // validate for no avatar or image
   if (!avatarLocalPath) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
-    throw new ApiError(400, "Avatar image required");
+    throw new ApiError(400, "REGISTRATION ERROR:: Avatar image required");
   }
 
   // validate if user already exits
@@ -78,7 +78,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
-    throw new ApiError(409, "User already exists");
+    throw new ApiError(409, "REGISTRATION ERROR:: User already exists");
   }
 
   // upload file to cloudinary
@@ -86,7 +86,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
 
   if (!avatar) {
-    throw new ApiError(400, "Avatar image required");
+    throw new ApiError(400, "REGISTRATION ERROR:: Avatar image required");
   }
 
   // insert to database
@@ -105,7 +105,10 @@ const registerUser = asyncHandler(async (req, res) => {
   );
 
   if (!newUser) {
-    throw new ApiError(500, "Something went wrong while registering new user");
+    throw new ApiError(
+      500,
+      "REGISTRATION ERROR:: Something went wrong while registering new user"
+    );
   }
 
   // api response
@@ -127,10 +130,10 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // validate empty field
   if (!(username || email)) {
-    throw new ApiError(400, "Username or Email required");
+    throw new ApiError(400, "LOGIN ERROR:: Username or Email required");
   }
   if (!password) {
-    throw new ApiError(400, "Password required");
+    throw new ApiError(400, "LOGIN ERROR:: Password required");
   }
 
   // find user with incoming form data
@@ -138,13 +141,13 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // no user found
   if (!user) {
-    throw new ApiError(404, "user not found");
+    throw new ApiError(404, "LOGIN ERROR:: User not found");
   }
 
   // verify password
   const isPasswordValid = await user.isPasswordCorrect(password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid password");
+    throw new ApiError(401, "LOGIN ERROR:: Invalid password");
   }
 
   // generate access and refresh token
@@ -162,27 +165,31 @@ const loginUser = asyncHandler(async (req, res) => {
     .cookie("accessToken", accessToken, COOKIE_OPTIONS)
     .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
     .json(
-      new ApiResponse(200, {
-        accessToken,
-        refreshToken,
-        user: loggedInUser,
-      })
+      new ApiResponse(
+        200,
+        {
+          accessToken,
+          refreshToken,
+          user: loggedInUser,
+        },
+        "User logged-in successfully"
+      )
     );
 });
 
 // LOGOUT USER
 const logoutUser = asyncHandler(async (req, res) => {
   // delete refresh token from database
-  await User.findByIdAndUpdate(req.user._id, {
+  await User.findByIdAndUpdate(req.user?._id, {
     $unset: { refreshToken: "" },
   });
 
   // delete client cookies
-  res
+  return res
     .status(200)
     .clearCookie("accessToken", COOKIE_OPTIONS)
     .clearCookie("refreshToken", COOKIE_OPTIONS)
-    .json(new ApiResponse(200, {}, "User logged out successfully"));
+    .json(new ApiResponse(200, {}, "User logged-out successfully"));
 });
 
 // REESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
