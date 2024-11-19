@@ -24,14 +24,14 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
 
     // verify user
     if (!user) {
-      throw new ApiError(401, "User not found");
+      throw new ApiError(401, "Invalid access token");
     }
 
     // set user in request object
     req.user = user;
     next();
   } catch (error) {
-    throw new ApiError(401, `Invalid access token:: ${error?.message}`);
+    throw new ApiError(401, `JWT VERIFICATION ERROR:: ${error?.message}`);
   }
 });
 

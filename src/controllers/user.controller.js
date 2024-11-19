@@ -4,6 +4,8 @@ import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
+import jwt from "jsonwebtoken";
+import { COOKIE_OPTIONS } from "../constants.js";
 
 // HELPER FUNCTIONS
 const deleteTempFilesOnFail = (localFilePaths) => {
@@ -124,19 +126,19 @@ const loginUser = asyncHandler(async (req, res) => {
   const { username, email, password } = req.body;
 
   // validate empty field
-  if (!username && !email) {
+  if (!(username || email)) {
     throw new ApiError(400, "Username or Email required");
   }
   if (!password) {
     throw new ApiError(400, "Password required");
   }
 
-  // find user
+  // find user with incoming form data
   const user = await User.findOne({ $or: [{ username }, { email }] });
 
   // no user found
   if (!user) {
-    throw new ApiError(404, "No user found");
+    throw new ApiError(404, "user not found");
   }
 
   // verify password
@@ -149,21 +151,16 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } =
     await generateAccessTokenAndRefreshToken(user._id);
 
-  // loggedin user
+  // get loggedin user who have refresh token from database
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
 
-  // send cookie and response
-  const options = {
-    httpOnly: true, // modifiable only from server
-    secure: true,
-  };
-
+  // send client cookies
   return res
     .status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
+    .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
     .json(
       new ApiResponse(200, {
         accessToken,
@@ -180,17 +177,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     $unset: { refreshToken: "" },
   });
 
-  // delete cookie
-  const options = {
-    httpOnly: true,
-    secure: true,
-  };
-
+  // delete client cookies
   res
     .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
+    .clearCookie("accessToken", COOKIE_OPTIONS)
+    .clearCookie("refreshToken", COOKIE_OPTIONS)
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
+
+// 
 
 export { registerUser, loginUser, logoutUser };
