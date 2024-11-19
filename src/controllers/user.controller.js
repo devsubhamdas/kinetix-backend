@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken";
 import { COOKIE_OPTIONS } from "../constants.js";
 
 // HELPER FUNCTIONS
-const deleteTempFilesOnFail = (localFilePaths) => {
+const deleteTempFilesOnError = (localFilePaths) => {
   localFilePaths.forEach((filePath) => filePath && fs.unlinkSync(filePath));
 };
 
@@ -61,13 +61,13 @@ const registerUser = asyncHandler(async (req, res) => {
   if (
     [username, email, password, fullName].some((field) => field?.trim() === "")
   ) {
-    deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
+    deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(400, "Empty field not allowed");
   }
 
   // validate for no avatar or image
   if (!avatarLocalPath) {
-    deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
+    deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(400, "Avatar image required");
   }
 
@@ -77,7 +77,7 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (userExists) {
-    deleteTempFilesOnFail([avatarLocalPath, coverImageLocalPath]);
+    deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(409, "User already exists");
   }
 
@@ -185,6 +185,59 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged out successfully"));
 });
 
-// 
+// REESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
+const refreshAccessSession = asyncHandler(async (req, res) => {
+  // get incoming token
+  const incomingRefreshToken =
+    req.cookies.refreshToken || req.body.refreshToken;
 
-export { registerUser, loginUser, logoutUser };
+  // validate incoming token
+  if (!incomingRefreshToken) {
+    throw new ApiError(
+      401,
+      "REFRESH TOKEN ERROR:: Unauthorized request: Token expired"
+    );
+  }
+
+  try {
+    // decode incoming token
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    // find user in database with the given token
+    const user = await User.findById(decodedToken._id);
+
+    // when user not found
+    if (!user) {
+      throw new ApiError(401, "Invalid token: User not found");
+    }
+
+    // when client refresh token mismatch token stored in database
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "Invalid token: Tokens didn't match");
+    }
+
+    // generate new tokens
+    const { accessToken, refreshToken } =
+      await generateAccessTokenAndRefreshToken(user._id);
+
+    // send cookies, re-establish new session
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, COOKIE_OPTIONS)
+      .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+      .json(
+        new ApiResponse(
+          200,
+          { accessToken, refreshToken },
+          "Access tokene refreshed, new session established"
+        )
+      );
+  } catch (error) {
+    throw new ApiError(401, `REFRESH TOKEN ERROR:: ${error?.message}`);
+  }
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessSession };
