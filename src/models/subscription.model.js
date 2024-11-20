@@ -4,12 +4,12 @@ import User from "./user.model";
 const subscriptionSchema = new Schema({
   channel: {
     type: Schema.Types.ObjectId,
-    ref: User,
+    ref: "User",
     require: true,
   },
   subscriber: {
     type: Schema.Types.ObjectId,
-    ref: User,
+    ref: "User",
     require: true,
   }
 }, {timestams: true});

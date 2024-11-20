@@ -43,7 +43,6 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // get form data and files
   const { username, email, password, fullName } = req.body;
-  console.log(username, email);
 
   const avatarLocalPath =
     req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
@@ -177,7 +176,7 @@ const loginUser = asyncHandler(async (req, res) => {
     );
 });
 
-// LOGOUT USER
+// LOGOUT USER - require verifyJWT middleware
 const logoutUser = asyncHandler(async (req, res) => {
   // delete refresh token from database
   await User.findByIdAndUpdate(req.user?._id, {
@@ -192,7 +191,110 @@ const logoutUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "User logged-out successfully"));
 });
 
-// REESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
+// GET CURRENT USER - require verifyJWT middleware
+const getUser = asyncHandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(new ApiResponse(200, req.user, "Current user fetched successfully"));
+});
+
+// UPDATE USER PASSWORD - require verifyJWT middleware
+const updatePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+  const user = await User.findById(req.user?._id);
+  const isCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if (!isCorrect) {
+    throw new ApiError(400, "UPDATE ERROR:: Incorrect password");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password updated successfully"));
+});
+
+// UPDATE USER ACCOUNT - require verifyJWT middleware
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) {
+    throw new ApiError(400, "UPDATE ERROR:: Empty fields not allowed");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { fullName, email } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account updated successfully"));
+});
+
+// UPDATE USER AVATAR - require multer upload and verifyJWT middlewares
+const updateAvatar = asyncHandler(async (req, res) => {
+  const localPath = req.file ? req.file?.path : undefined;
+
+  if (!localPath) {
+    throw new ApiError(400, "UPDATE ERROR:: Image file required");
+  }
+
+  const avatar = await uploadOnCloudinary(localPath);
+
+  if (!avatar) {
+    deleteTempFilesOnError([localPath]);
+    throw new ApiError(
+      400,
+      "UPDATE ERROR:: Something went wrong while uploading avatar image"
+    );
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { avatar: avatar.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Avatar image updated successfully"));
+});
+
+
+// UPDATE USER COVER-IMAGE - require multer upload and verifyJWT middlewares
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const localPath = req.file ? req.file?.path : undefined;
+
+  if (!localPath) {
+    throw new ApiError(400, "UPDATE ERROR:: Image file required");
+  }
+
+  const coverImage = await uploadOnCloudinary(localPath);
+
+  if (!coverImage) {
+    deleteTempFilesOnError([localPath]);
+    throw new ApiError(
+      400,
+      "UPDATE ERROR:: Something went wrong while uploading cover image"
+    );
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    { $set: { coverImage: coverImage.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Cover image updated successfully"));
+});
+
+// RE-ESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
 const refreshAccessSession = asyncHandler(async (req, res) => {
   // get incoming token
   const incomingRefreshToken =
@@ -247,4 +349,14 @@ const refreshAccessSession = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessSession };
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  getUser,
+  updatePassword,
+  updateAccountDetails,
+  updateAvatar,
+  updateCoverImage,
+  refreshAccessSession,
+};
