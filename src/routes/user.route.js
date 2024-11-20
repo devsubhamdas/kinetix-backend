@@ -20,6 +20,8 @@ router.route("/login").post(loginUser);
 // user logout
 router.route("/logout").post(verifyJWT, logoutUser);
 
+// user update
+
 // re-established session
 router.route("/refresh-token").post(refreshAccessSession);
 
