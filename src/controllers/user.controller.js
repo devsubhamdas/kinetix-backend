@@ -2,7 +2,10 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { COOKIE_OPTIONS } from "../constants.js";
@@ -95,7 +98,9 @@ const registerUser = asyncHandler(async (req, res) => {
     password,
     fullName,
     avatar: avatar.url,
+    avatarPublicId: avatar.public_id,
     coverImage: coverImage?.url || "",
+    coverImagePublicId: coverImage?.public_id || "",
   });
 
   // check if user successfully created or not, remove password and refreshToken field
@@ -202,7 +207,7 @@ const getUser = asyncHandler(async (req, res) => {
 const updatePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
-  if(!oldPassword || !newPassword) {
+  if (!oldPassword || !newPassword) {
     throw new ApiError(400, "UPDATE ERROR:: Password: No empty fields allowed");
   }
 
@@ -226,7 +231,10 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
 
   if (!fullName || !email) {
-    throw new ApiError(400, "UPDATE ERROR:: Account Details: Empty fields not allowed");
+    throw new ApiError(
+      400,
+      "UPDATE ERROR:: Account Details: Empty fields not allowed"
+    );
   }
 
   const user = await User.findByIdAndUpdate(
@@ -243,6 +251,9 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 // UPDATE USER AVATAR - require multer upload and verifyJWT middlewares
 const updateAvatar = asyncHandler(async (req, res) => {
   const localPath = req.file ? req.file?.path : undefined;
+  const { avatarPublicId } = await User.findById(req.user?._id).select(
+    "avatarPublicId"
+  );
 
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
@@ -258,9 +269,14 @@ const updateAvatar = asyncHandler(async (req, res) => {
     );
   }
 
+  // delete old avatar image from cloudinary
+  if(avatarPublicId && avatar) {
+    await deleteFromCloudinary(avatarPublicId);
+  }
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
-    { $set: { avatar: avatar.url } },
+    { $set: { avatar: avatar.url, avatarPublicId: avatar.public_id } },
     { new: true }
   ).select("-password -refreshToken");
 
@@ -269,10 +285,10 @@ const updateAvatar = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Avatar image updated successfully"));
 });
 
-
 // UPDATE USER COVER-IMAGE - require multer upload and verifyJWT middlewares
 const updateCoverImage = asyncHandler(async (req, res) => {
   const localPath = req.file ? req.file?.path : undefined;
+  const { coverImagePublicId } = await User.findById(req.user?._id).select("coverImagePublicId");
 
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
@@ -286,11 +302,16 @@ const updateCoverImage = asyncHandler(async (req, res) => {
       400,
       "UPDATE ERROR:: Something went wrong while uploading cover image"
     );
+  } 
+
+  // delete old cover-image from cloudinary if available 
+  if(coverImagePublicId && coverImage) {
+    await deleteFromCloudinary(coverImagePublicId);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
-    { $set: { coverImage: coverImage.url } },
+    { $set: { coverImage: coverImage.url, coverImagePublicId: coverImage.public_id } },
     { new: true }
   ).select("-password -refreshToken");
 
