@@ -201,11 +201,16 @@ const getUser = asyncHandler(async (req, res) => {
 // UPDATE USER PASSWORD - require verifyJWT middleware
 const updatePassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.body;
+
+  if(!oldPassword || !newPassword) {
+    throw new ApiError(400, "UPDATE ERROR:: Password: No empty fields allowed");
+  }
+
   const user = await User.findById(req.user?._id);
   const isCorrect = await user.isPasswordCorrect(oldPassword);
 
   if (!isCorrect) {
-    throw new ApiError(400, "UPDATE ERROR:: Incorrect password");
+    throw new ApiError(400, "UPDATE ERROR:: Password: Incorrect password");
   }
 
   user.password = newPassword;
@@ -221,7 +226,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
   const { fullName, email } = req.body;
 
   if (!fullName || !email) {
-    throw new ApiError(400, "UPDATE ERROR:: Empty fields not allowed");
+    throw new ApiError(400, "UPDATE ERROR:: Account Details: Empty fields not allowed");
   }
 
   const user = await User.findByIdAndUpdate(
