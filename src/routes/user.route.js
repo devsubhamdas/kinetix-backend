@@ -46,6 +46,6 @@ router.route("/update/avatar-image").put(verifyJWT, upload.single("avatar"), upd
 router.route("/update/cover-image").put(verifyJWT, upload.single("coverImage"), updateCoverImage);
 
 // re-established session
-router.route("/refresh-token").post(refreshAccessSession);
+router.route("/renew/access-token").post(refreshAccessSession);
 
 export default router;

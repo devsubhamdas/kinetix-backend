@@ -26,7 +26,7 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
   } catch (error) {
     throw new ApiError(
       500,
-      `Something went wrong while generating tokens:: ${error?.message}`
+      `TOKEN GENERATE ERROR:: ${error?.message}`
     );
   }
 };
@@ -185,7 +185,7 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
   // delete refresh token from database
   await User.findByIdAndUpdate(req.user?._id, {
-    $unset: { refreshToken: "" },
+    $unset: { refreshToken: 1 },
   });
 
   // delete client cookies
