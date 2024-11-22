@@ -4,7 +4,7 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
-// configuration
+// MIDDLEWARE CONFIGURATION
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN,
@@ -16,10 +16,10 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// import routes
+// IMPORT ROUTES
 import userRouter from "./routes/user.route.js";
 
-// declare routes
+// DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
 
 // http://localhost:3000/api/v1/user/register
