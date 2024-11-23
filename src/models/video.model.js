@@ -21,8 +21,9 @@ const videoSchema = new Schema(
     },
     description: {
       type: String,
-      required: true,
     },
+    genres: [String],
+    tags: [String],
     publicId: {
       type: String,
       required: true,

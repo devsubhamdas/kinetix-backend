@@ -24,10 +24,7 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
     await user.save({ validateBeforeSave: false });
     return { accessToken, refreshToken };
   } catch (error) {
-    throw new ApiError(
-      500,
-      `TOKEN GENERATE ERROR:: ${error?.message}`
-    );
+    throw new ApiError(500, `TOKEN GENERATE ERROR:: ${error?.message}`);
   }
 };
 
@@ -270,7 +267,7 @@ const updateAvatar = asyncHandler(async (req, res) => {
   }
 
   // delete old avatar image from cloudinary
-  if(avatarPublicId && avatar) {
+  if (avatarPublicId && avatar) {
     await deleteFromCloudinary(avatarPublicId);
   }
 
@@ -288,7 +285,9 @@ const updateAvatar = asyncHandler(async (req, res) => {
 // UPDATE USER COVER-IMAGE - require multer upload and verifyJWT middlewares
 const updateCoverImage = asyncHandler(async (req, res) => {
   const localPath = req.file ? req.file?.path : undefined;
-  const { coverImagePublicId } = await User.findById(req.user?._id).select("coverImagePublicId");
+  const { coverImagePublicId } = await User.findById(req.user?._id).select(
+    "coverImagePublicId"
+  );
 
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
@@ -302,22 +301,86 @@ const updateCoverImage = asyncHandler(async (req, res) => {
       400,
       "UPDATE ERROR:: Something went wrong while uploading cover image"
     );
-  } 
+  }
 
-  // delete old cover-image from cloudinary if available 
-  if(coverImagePublicId && coverImage) {
+  // delete old cover-image from cloudinary if available
+  if (coverImagePublicId && coverImage) {
     await deleteFromCloudinary(coverImagePublicId);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
-    { $set: { coverImage: coverImage.url, coverImagePublicId: coverImage.public_id } },
+    {
+      $set: {
+        coverImage: coverImage.url,
+        coverImagePublicId: coverImage.public_id,
+      },
+    },
     { new: true }
   ).select("-password -refreshToken");
 
   return res
     .status(200)
     .json(new ApiResponse(200, user, "Cover image updated successfully"));
+});
+
+// GET WATCH HISTORY - require verifyJWT middleware
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = User.aggregate([
+    {
+      $match: {
+        _id: mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  if (!user) {
+    throw new ApiError(404, "WATCH HISTORY ERROR:: User not found");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        user[0].watchHistory,
+        "Watch history fetched successfully"
+      )
+    );
 });
 
 // RE-ESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
@@ -384,5 +447,6 @@ export {
   updateAccountDetails,
   updateAvatar,
   updateCoverImage,
+  getWatchHistory,
   refreshAccessSession,
 };

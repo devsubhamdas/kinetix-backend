@@ -8,6 +8,7 @@ import {
   updateAccountDetails,
   updateAvatar,
   updateCoverImage,
+  getWatchHistory,
   refreshAccessSession,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -45,7 +46,10 @@ router.route("/update/avatar-image").put(verifyJWT, upload.single("avatar"), upd
 // user update cover image
 router.route("/update/cover-image").put(verifyJWT, upload.single("coverImage"), updateCoverImage);
 
+// get user watch history
+router.route("/watch-history").get(verifyJWT, getWatchHistory);
+
 // re-established session
-router.route("/renew/access-token").post(refreshAccessSession);
+router.route("/renew/access-token").post(verifyJWT, refreshAccessSession);
 
 export default router;
