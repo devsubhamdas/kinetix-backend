@@ -9,11 +9,11 @@ const videoSchema = new Schema(
     },
     thumbnail: {
       type: String,
-      required: true,
     },
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
+      required: true,
     },
     title: {
       type: String,
@@ -25,6 +25,7 @@ const videoSchema = new Schema(
     genre: {
       type: String,
       enum: [
+        "Video",
         "Tutorials",
         "Vlogs",
         "Reviews",
@@ -58,9 +59,12 @@ const videoSchema = new Schema(
       ],
     },
     tags: [String],
-    publicId: {
+    videoPublicId: {
       type: String,
       required: true,
+    },
+    thumbnailPublicId: {
+      type: String,
     },
     duration: {
       type: Number,
