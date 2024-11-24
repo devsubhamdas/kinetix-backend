@@ -31,11 +31,11 @@ const userSchema = new Schema(
     },
     avatar: {
       type: String,
-      required: true
+      required: true,
     },
     avatarPublicId: {
       type: String,
-      required: true
+      required: true,
     },
     coverImage: {
       type: String,
@@ -43,6 +43,43 @@ const userSchema = new Schema(
     coverImagePublicId: {
       type: String,
     },
+    contentGenre: {
+      type: String,
+      enum: [
+        "Adventure",
+        "Music",
+        "Gaming",
+        "Education",
+        "Comedy",
+        "News",
+        "Sports",
+        "Technology",
+        "Travel",
+        "Lifestyle",
+        "Fashion",
+        "Food & Cooking",
+        "Health & Fitness",
+        "DIY & Crafts",
+        "Animation",
+        "Documentary",
+        "Movies & Entertainment",
+        "Vlogs",
+        "Science",
+        "History",
+        "Motivational & Self-Help",
+        "Podcasts & Interviews",
+        "Live Streams",
+        "Art & Design",
+        "Cars & Automotive",
+        "Business & Finance",
+        "Nature & Wildlife",
+        "Kids & Family",
+        "Horror & Mystery",
+        "Reviews & Unboxings",
+        "Tutorials & How-To",
+      ],
+    },
+    tags: [String],
     refreshToken: {
       type: String,
     },
@@ -95,7 +132,6 @@ userSchema.methods.generateRefreshToken = function () {
     }
   );
 };
-
 
 const User = mongoose.model("User", userSchema);
 
