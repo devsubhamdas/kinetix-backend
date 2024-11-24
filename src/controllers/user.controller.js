@@ -326,7 +326,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
 // GET WATCH HISTORY - require verifyJWT middleware
 const getWatchHistory = asyncHandler(async (req, res) => {
-  const user = User.aggregate([
+  const user = await User.aggregate([
     {
       $match: {
         _id: mongoose.Types.ObjectId(req.user?._id),
