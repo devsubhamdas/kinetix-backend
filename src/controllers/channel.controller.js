@@ -98,6 +98,23 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
 });
 
 // GET VIDEOS BY CHANNEL NAME
+const getAllVideosByChannelName = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  if (username !== req.user?.username) {
+    throw new ApiError(400, "CHANNEL ERROR:: Owner not found");
+  }
+
+  const videos = await Video.find({ owner: req.user?._id });
+
+  if(!(videos?.length > 0)) {
+    throw new ApiError(404, "CHANNEL ERROR:: You haven't uploaded any video yet")
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "All videos fetched successfully"));
+});
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -177,4 +194,4 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
 // UPDATE VIDEO INFO
 
-export { getChannelInfoAndStats, uploadVideo };
+export { getChannelInfoAndStats, uploadVideo, getAllVideosByChannelName };

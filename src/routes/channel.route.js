@@ -4,6 +4,7 @@ import { upload } from "../middlewares/multer.middleware.js";
 import {
   getChannelInfoAndStats,
   uploadVideo,
+  getAllVideosByChannelName
 } from "../controllers/channel.controller.js";
 
 const router = Router();
@@ -31,7 +32,7 @@ router.route("/:username/upload/video").post(
 router.route("/:username/create/post").post(verifyJWT);
 
 // get all videos by channel
-router.route("/:username/videos").get(verifyJWT);
+router.route("/:username/videos").get(verifyJWT, getAllVideosByChannelName);
 
 // get all playlists
 router.route("/:username/playlist").get(verifyJWT);
