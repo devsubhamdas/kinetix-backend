@@ -6,15 +6,11 @@ import {
   uploadOnCloudinary,
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
-import fs from "fs";
 import jwt from "jsonwebtoken";
 import { COOKIE_OPTIONS } from "../constants.js";
+import { deleteTempFilesOnError } from "../utils/helper.js";
 
 // HELPER FUNCTIONS
-const deleteTempFilesOnError = (localFilePaths) => {
-  localFilePaths.forEach((filePath) => filePath && fs.unlinkSync(filePath));
-};
-
 const generateAccessTokenAndRefreshToken = async (userId) => {
   try {
     const user = await User.findById(userId);
@@ -90,8 +86,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
   // insert to database
   const user = await User.create({
-    username: username.toLowerCase(),
-    email: email.toLowerCase(),
+    username: username?.toLowerCase(),
+    email: email?.toLowerCase(),
     password,
     fullName,
     avatar: avatar.url,
@@ -381,6 +377,21 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         "Watch history fetched successfully"
       )
     );
+});
+
+// SET WATCH HISTORY - require verifyJWT middleware 
+const setWatchHistory = asyncHandler(async (req, res) => {
+
+});
+
+// GET SUBSCRIPTION LIST - require verifyJWT middleware
+const getSubscriptionList = asyncHandler(async (req, res) => {
+
+});
+
+// SET SUBSCRIPTION LIST - require verifyJWT middleware
+const setSubscriptionList = asyncHandler(async (req, res) => {
+
 });
 
 // RE-ESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE

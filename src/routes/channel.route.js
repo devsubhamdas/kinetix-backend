@@ -3,9 +3,11 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import {
   getChannelInfoAndStats,
-  uploadVideo,
   getAllVideosByChannelName
 } from "../controllers/channel.controller.js";
+import {
+  uploadVideo
+} from "../controllers/video.controller.js";
 
 const router = Router();
 
