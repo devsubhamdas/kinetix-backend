@@ -96,11 +96,44 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
 const getAllVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
-  if (username !== req.user?.username) {
-    throw new ApiError(400, "CHANNEL ERROR:: Owner not found");
+  const channel = await User.findOne({ username });
+
+  if (!username || !channel) {
+    throw new ApiError(400, "CHANNEL ERROR:: User not found");
   }
 
-  const videos = await Video.find({ owner: req.user?._id });
+  const videos = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner"
+        },
+      }
+    },
+    {
+      $match: {
+        "owner.username": channel.username,
+      }
+    },
+    {
+      $project: {
+        videoFile: 1, 
+        thumbnail: 1,
+        title: 1,
+        duration: 1,
+        views: 1,
+        createdAt: 1,
+      }
+    }
+  ]);
 
   return res
     .status(200)
@@ -108,15 +141,9 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
 });
 
 // GET COMMUNITY POSTS BY CHANNEL NAME
-const getAllPostsByChannelName = asyncHandler(async (req, res) => {
-
-});
+const getAllPostsByChannelName = asyncHandler(async (req, res) => {});
 
 // GET PLAYLISTS BY CHANNEL NAME
-const getAllPlaylistsByChannelName = asyncHandler(async (req, res) => {
-
-});
-
-
+const getAllPlaylistsByChannelName = asyncHandler(async (req, res) => {});
 
 export { getChannelInfoAndStats, getAllVideosByChannelName };

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -19,11 +20,14 @@ const parseTags = (tags) => {
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
-  // verify login
-  // get username and video file
-  // validate video title, thumbnail, owner and path
-  // create new video object
-  // upload to cloudinary
+  /* 
+    # steps: 
+    - verify login
+    - get username and video file
+    - validate video title, thumbnail, owner and path
+    - create new video object
+    - upload to cloudinary
+  */
 
   const { username } = req.params;
   const { videoTitle, videoDesc, videoGenre, videoTags } = req.body;
@@ -93,69 +97,130 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
 // DELETE VIDEO
 const deleteVideo = asyncHandler(async (req, res) => {
+  /* 
+    # steps:
+    - validate username and video id
+    - validate channel
+    - validate if the video belongs to that owner
+    - select the video
+    - validate if thumbnail to be deleted or not
+    - delete video and/or thumbnail from cloudinary
+    - if successfully deleted from cloudinary, then delete from database
+    - return response
+  */
+  const { username, id } = req.params;
 
+  if (!id) {
+    throw new ApiError(400, "VIDEO DELETE ERROR:: Video Id required");
+  }
+
+  if (!username) {
+    throw new ApiError(400, "VIDEO DELETE ERROR:: Username required");
+  }
+
+  const channel = await User.findOne({ username });
+
+  if (!channel) {
+    throw new ApiError(400, "VIDEO DELETE ERROR:: Unknown username");
+  }
+
+  const [video] = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $match: {
+        "owner.username": channel.username,
+      },
+    },
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(String(id)),
+      }
+    },
+    {
+      $project: {
+        videoPublicId: 1,
+        thumbnailPublicId: 1,
+      }
+    }
+  ]);
+
+  if (!video) {
+    throw new ApiError(400, "VIDEO DELETE ERROR:: Invalid video id");
+  }
+
+  const videoResponse = await deleteFromCloudinary(video?.videoPublicId, "video");
+  const thumbnailResponse = video?.thumbnailPublicId ? await deleteFromCloudinary(video?.thumbnailPublicId) : undefined;
+
+  if (videoResponse?.error || (video?.thumbnailPublicId && thumbnailResponse?.error)) {
+    throw new ApiError(
+      400,
+      "VIDEO DELETE ERROR:: Something went wrong while deleting video from cloudinary"
+    );
+  }
+
+  const isDeleted = await Video.findByIdAndDelete({ _id: id });
+
+  if (!isDeleted) {
+    // code to restore the deleted file from cloudinary 
+    throw new ApiError(
+      400,
+      "VIDEO DELETE ERROR:: Something went wrong while deleting video from mongodb"
+    );
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Video deleted successfully"));
 });
 
 // GET VIDEO BY ID
-const getVideoById = asyncHandler(async (req, res) => {
-
-});
+const getVideoById = asyncHandler(async (req, res) => {});
 
 // GET VIDEO BY ID
-const getVideosByRecommendation = asyncHandler(async (req, res) => {
-
-});
+const getVideosByRecommendation = asyncHandler(async (req, res) => {});
 
 // TOGGLE VIDEO STATUS
-const toggleVideoStatus = asyncHandler(async (req, res) => {
-
-});
+const toggleVideoStatus = asyncHandler(async (req, res) => {});
 
 // UPDATE VIDEO INFO
-const updateVideoDetails = asyncHandler(async (req, res) => {
-
-});
+const updateVideoDetails = asyncHandler(async (req, res) => {});
 
 // CREATE POST
-const createPost = asyncHandler(async (req, res) => {
-
-});
+const createPost = asyncHandler(async (req, res) => {});
 
 // DELETE POST
-const deletePost = asyncHandler(async (req, res) => {
-
-});
+const deletePost = asyncHandler(async (req, res) => {});
 
 // UPDATE POST
-const updatePost = asyncHandler(async (req, res) => {
-
-});
+const updatePost = asyncHandler(async (req, res) => {});
 
 // GET ALL POST
-const getAllPosts = asyncHandler(async (req, res) => {
-
-});
+const getAllPosts = asyncHandler(async (req, res) => {});
 
 // CREATE PLAYLIST
-const createPlaylist = asyncHandler(async (req, res) => {
-
-});
+const createPlaylist = asyncHandler(async (req, res) => {});
 
 // DELETE PLAYLIST
-const deletePlaylist = asyncHandler(async (req, res) => {
-
-});
+const deletePlaylist = asyncHandler(async (req, res) => {});
 
 // UPDATE PLAYLIST
-const updatePlaylist = asyncHandler(async (req, res) => {
-
-});
+const updatePlaylist = asyncHandler(async (req, res) => {});
 
 // GET ALL PLAYLISTS
-const getAllPlaylists = asyncHandler(async (req, res) => {
+const getAllPlaylists = asyncHandler(async (req, res) => {});
 
-});
-
-export {
-  uploadVideo
-}
+export { uploadVideo, deleteVideo };

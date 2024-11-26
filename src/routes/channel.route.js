@@ -6,7 +6,8 @@ import {
   getAllVideosByChannelName
 } from "../controllers/channel.controller.js";
 import {
-  uploadVideo
+  uploadVideo,
+  deleteVideo
 } from "../controllers/video.controller.js";
 
 const router = Router();
@@ -15,7 +16,7 @@ const router = Router();
 router.route("/:username").get(verifyJWT, getChannelInfoAndStats);
 
 // upload a video
-router.route("/:username/upload/video").post(
+router.route("/:username/video/upload").post(
   verifyJWT,
   upload.fields([
     {
@@ -30,13 +31,31 @@ router.route("/:username/upload/video").post(
   uploadVideo
 );
 
+// delete a video
+router.route("/:username/video/delete/v/:id").post(verifyJWT, deleteVideo);
+
+// update video details
+
 // create a post
 router.route("/:username/create/post").post(verifyJWT);
 
-// get all videos by channel
-router.route("/:username/videos").get(verifyJWT, getAllVideosByChannelName);
+// delete a post
 
-// get all playlists
-router.route("/:username/playlist").get(verifyJWT);
+// update a post
+
+// create playlist
+
+// update playlist
+
+// delete playlist
+
+// get all videos by channel
+router.route("/:username/videos").get(getAllVideosByChannelName);
+
+// get all community post by channel
+router.route("/:username/community-post").get();
+
+// get all playlists by channel
+router.route("/:username/playlist").get();
 
 export default router;

@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
@@ -26,17 +27,19 @@ const generateAccessTokenAndRefreshToken = async (userId) => {
 
 // VALIDATE AND CREATE NEW USER
 const registerUser = asyncHandler(async (req, res) => {
-  // steps:
-  // # get user details from frontend
-  // # validate - for no empty fields
-  // # validate no images or avatar file
-  // # check if user alreadty exits - username or email
-  // # upload to cloudinary - images or avater, cover image
-  // # create user object - insert into database
-  // # check if user created successfully or not
-  // # remove password and refreshToken from response object
-  // # return response
-
+  /* 
+    # steps:
+    - get user details from frontend
+    - validate - for no empty fields
+    - validate no images or avatar file
+    - check if user alreadty exits - username or email
+    - upload to cloudinary - images or avater, cover image
+    - create user object - insert into database
+    - check if user created successfully or not
+    - remove password and refreshToken from response object
+    - return response
+  */
+  
   // get form data and files
   const { username, email, password, fullName } = req.body;
 
@@ -116,13 +119,15 @@ const registerUser = asyncHandler(async (req, res) => {
 
 // VALIDATE AND LOGIN USER
 const loginUser = asyncHandler(async (req, res) => {
-  // steps:
-  // get user details from frontend - username or email and password
-  // find user using username or email
-  // verify password
-  // get access and refresh token
-  // send cookie
-
+  /*
+    # steps:
+    - get user details from frontend - username or email and password
+    - find user using username or email
+    - verify password
+    - get access and refresh token
+    - send cookie
+  */
+  
   const { username, email, password } = req.body;
 
   // validate empty field
@@ -325,7 +330,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: mongoose.Types.ObjectId(req.user?._id),
+        _id: new mongoose.Types.ObjectId(String(req.user?._id)),
       },
     },
     {
