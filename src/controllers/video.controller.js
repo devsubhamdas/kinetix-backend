@@ -4,6 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import Video from "../models/video.model.js";
+import { parseTags } from "../utils/helper.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
@@ -12,11 +13,6 @@ import { deleteTempFilesOnError } from "../utils/helper.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
 import { COOKIE_OPTIONS } from "../constants.js";
-
-// HELPER FUNCTIONS
-const parseTags = (tags) => {
-  return tags?.split(",");
-};
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -48,7 +44,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
   if (username !== req.user?.username) {
     deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
-    throw new ApiError(400, "VIDEO UPLOAD ERROR:: Unknown username");
+    throw new ApiError(401, "VIDEO UPLOAD ERROR:: Unauthorised user access");
   }
 
   if (!videoFileLocalPath) {
@@ -75,7 +71,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     owner: req.user?._id,
     title: videoTitle,
     description: videoDesc?.trim() || "",
-    genre: videoGenre || "Video",
+    genre: videoGenre?.toLowerCase() || "video",
     tags: videoTags?.trim() ? parseTags(videoTags) : [],
     videoPublicId: videoFile.public_id,
     thumbnailPublicId: videoThumbnail?.public_id || "",
@@ -110,12 +106,15 @@ const deleteVideo = asyncHandler(async (req, res) => {
   */
   const { username, id } = req.params;
 
-  if (!id) {
-    throw new ApiError(400, "VIDEO DELETE ERROR:: Video Id required");
+  if (username !== req.user.username) {
+    throw new ApiError(401, "VIDEO DELETE ERROR:: Unauthorised user access");
   }
 
-  if (!username) {
-    throw new ApiError(400, "VIDEO DELETE ERROR:: Username required");
+  if (!username || !id) {
+    throw new ApiError(
+      400,
+      "VIDEO DELETE ERROR:: Username and Video Id required"
+    );
   }
 
   const channel = await User.findOne({ username });
@@ -148,24 +147,31 @@ const deleteVideo = asyncHandler(async (req, res) => {
     {
       $match: {
         _id: new mongoose.Types.ObjectId(String(id)),
-      }
+      },
     },
     {
       $project: {
         videoPublicId: 1,
         thumbnailPublicId: 1,
-      }
-    }
+      },
+    },
   ]);
 
   if (!video) {
     throw new ApiError(400, "VIDEO DELETE ERROR:: Invalid video id");
   }
 
-  const videoResponse = await deleteFromCloudinary(video?.videoPublicId, "video");
-  const thumbnailResponse = video?.thumbnailPublicId ? await deleteFromCloudinary(video?.thumbnailPublicId) : undefined;
+  const { videoPublicId, thumbnailPublicId } = video;
 
-  if (videoResponse?.error || (video?.thumbnailPublicId && thumbnailResponse?.error)) {
+  const videoDelResponse = await deleteFromCloudinary(videoPublicId, "video");
+  const thumbnailDelResponse = video?.thumbnailPublicId
+    ? await deleteFromCloudinary(thumbnailPublicId)
+    : undefined;
+
+  if (
+    videoDelResponse?.error ||
+    (thumbnailPublicId && thumbnailDelResponse?.error)
+  ) {
     throw new ApiError(
       400,
       "VIDEO DELETE ERROR:: Something went wrong while deleting video from cloudinary"
@@ -175,7 +181,7 @@ const deleteVideo = asyncHandler(async (req, res) => {
   const isDeleted = await Video.findByIdAndDelete({ _id: id });
 
   if (!isDeleted) {
-    // code to restore the deleted file from cloudinary 
+    // code to restore the deleted file from cloudinary
     throw new ApiError(
       400,
       "VIDEO DELETE ERROR:: Something went wrong while deleting video from mongodb"
@@ -187,17 +193,130 @@ const deleteVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Video deleted successfully"));
 });
 
-// GET VIDEO BY ID
-const getVideoById = asyncHandler(async (req, res) => {});
+// UPDATE VIDEO DETAILS
+const updateVideoDetails = asyncHandler(async (req, res) => {
+  const { username, id } = req.params;
+
+  if (username !== req.user.username) {
+    throw new ApiError(401, "VIDEO UPDATE ERROR:: Unauthorised user access");
+  }
+
+  const video = await Video.findById({ _id: id });
+
+  if (!video) {
+    throw new ApiError(404, "VIDEO UPDATE ERROR:: Invalid video id");
+  }
+
+  const { title, description, genre, tags } = req.body;
+
+  if (!title) {
+    throw new ApiError(400, "VIDEO UPDATE ERROR:: Title cannot be empty");
+  }
+
+  if (title) {
+    const response = await Video.findByIdAndUpdate(id, { $set: { title } });
+    if (!response) {
+      throw new ApiError(500, "VIDEO UPDATE ERROR:: Cannot update title");
+    }
+  }
+
+  if (description) {
+    const response = await Video.findByIdAndUpdate(id, {
+      $set: { description },
+    });
+    if (!response) {
+      throw new ApiError(500, "VIDEO UPDATE ERROR:: Cannot update description");
+    }
+  }
+
+  if (genre) {
+    const response = await Video.findByIdAndUpdate(id, { $set: { genre } });
+    if (!response) {
+      throw new ApiError(500, "VIDEO UPDATE ERROR:: Cannot update genre");
+    }
+  }
+
+  if (tags) {
+    const response = await Video.findByIdAndUpdate(id, {
+      $set: { tags: parseTags(tags) },
+    });
+    if (!response) {
+      throw new ApiError(500, "VIDEO UPDATE ERROR:: Cannot update tags");
+    }
+  }
+
+  const newVideo = await Video.findById({ _id: id });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, newVideo, "Video details updated successfully"));
+});
+
+// UPDATE VIDEO THUMBNAIL
 
 // GET VIDEO BY ID
+const getVideoById = asyncHandler(async (req, res) => {
+  const { username, id } = req.params;
+
+  if (!username || !id) {
+    throw new ApiError(400, "GET VIDEO ERROR:: Username and v_id required");
+  }
+
+  const [video] = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $match: {
+        "owner.username": username,
+      },
+    },
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(String(id)),
+      },
+    },
+    {
+      $project: {
+        videoFile: 1,
+        thumbnail: 1,
+        title: 1,
+        description: 1,
+        duration: 1,
+        views: 1,
+        createdAt: 1,
+        "owner.username": 1,
+        "owner.avatar": 1,
+      },
+    },
+  ]);
+
+  if (!video) {
+    throw new ApiError(400, "GET VIDEO ERROR:: Video not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, video, "Video fetched successfully"));
+});
+
+// GET VIDEO BY RECOMMENDATION
 const getVideosByRecommendation = asyncHandler(async (req, res) => {});
 
 // TOGGLE VIDEO STATUS
 const toggleVideoStatus = asyncHandler(async (req, res) => {});
-
-// UPDATE VIDEO INFO
-const updateVideoDetails = asyncHandler(async (req, res) => {});
 
 // CREATE POST
 const createPost = asyncHandler(async (req, res) => {});
@@ -223,4 +342,4 @@ const updatePlaylist = asyncHandler(async (req, res) => {});
 // GET ALL PLAYLISTS
 const getAllPlaylists = asyncHandler(async (req, res) => {});
 
-export { uploadVideo, deleteVideo };
+export { uploadVideo, deleteVideo, getVideoById, updateVideoDetails };

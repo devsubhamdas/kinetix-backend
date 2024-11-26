@@ -12,13 +12,15 @@ const commentSchema = new Schema(
       ref: "User",
       required: true,
     },
-    video: {
-      type: Schema.Types.ObjectId,
-      ref: "Video",
+    refType: {
+      type: String,
+      required: true,
+      enum: ["Video", "CommunityPost", "Comment"]
     },
-    communityPost: {
+    refId: {
       type: Schema.Types.ObjectId,
-      ref: "CommunityPost",
+      refPath: 'refType',
+      required: true,
     },
   },
   { timestamps: true }

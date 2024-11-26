@@ -9,7 +9,7 @@ import {
 } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { COOKIE_OPTIONS } from "../constants.js";
-import { deleteTempFilesOnError } from "../utils/helper.js";
+import { deleteTempFilesOnError, parseTags } from "../utils/helper.js";
 
 // HELPER FUNCTIONS
 const generateAccessTokenAndRefreshToken = async (userId) => {
@@ -41,7 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
   */
   
   // get form data and files
-  const { username, email, password, fullName } = req.body;
+  const { username, email, password, fullName, contentGenre, tags } = req.body;
 
   const avatarLocalPath =
     req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
@@ -97,6 +97,8 @@ const registerUser = asyncHandler(async (req, res) => {
     avatarPublicId: avatar.public_id,
     coverImage: coverImage?.url || "",
     coverImagePublicId: coverImage?.public_id || "",
+    contentGenre: contentGenre?.toLowerCase(),
+    tags: tags?.trim() ? parseTags(tags) : [],
   });
 
   // check if user successfully created or not, remove password and refreshToken field
@@ -453,6 +455,9 @@ const refreshAccessSession = asyncHandler(async (req, res) => {
     throw new ApiError(401, `REFRESH TOKEN ERROR:: ${error?.message}`);
   }
 });
+
+// DELETE ACCOUNT
+const deleteAccount = asyncHandler(async (req, res) => {});
 
 export {
   registerUser,

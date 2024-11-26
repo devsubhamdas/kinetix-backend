@@ -7,13 +7,14 @@ import {
 } from "../controllers/channel.controller.js";
 import {
   uploadVideo,
-  deleteVideo
+  deleteVideo,
+  updateVideoDetails,
 } from "../controllers/video.controller.js";
 
 const router = Router();
 
 // get channel info and stats
-router.route("/:username").get(verifyJWT, getChannelInfoAndStats);
+router.route("/:username").get(getChannelInfoAndStats);
 
 // upload a video
 router.route("/:username/video/upload").post(
@@ -32,9 +33,10 @@ router.route("/:username/video/upload").post(
 );
 
 // delete a video
-router.route("/:username/video/delete/v/:id").post(verifyJWT, deleteVideo);
+router.route("/:username/video/delete/id/:id").post(verifyJWT, deleteVideo);
 
 // update video details
+router.route("/:username/video/update/id/:id").put(verifyJWT, updateVideoDetails);
 
 // create a post
 router.route("/:username/create/post").post(verifyJWT);

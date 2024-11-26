@@ -15,12 +15,12 @@ import { COOKIE_OPTIONS } from "../constants.js";
 // GET CHANNEL INFO AND STATS
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
-
+  console.log(username);
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username not found");
   }
 
-  const channel = await User.aggregate([
+  const [channel] = await User.aggregate([
     {
       $match: {
         username: username?.trim().toLowerCase(),
@@ -77,7 +77,7 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
     },
   ]);
 
-  if (channel?.length) {
+  if (!channel) {
     throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
   }
 
@@ -86,7 +86,7 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
-        channel[0],
+        channel,
         "Channel info and stats fetched successfully"
       )
     );
@@ -114,25 +114,25 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
     {
       $addFields: {
         owner: {
-          $first: "$owner"
+          $first: "$owner",
         },
-      }
+      },
     },
     {
       $match: {
         "owner.username": channel.username,
-      }
+      },
     },
     {
       $project: {
-        videoFile: 1, 
+        videoFile: 1,
         thumbnail: 1,
         title: 1,
         duration: 1,
         views: 1,
         createdAt: 1,
-      }
-    }
+      },
+    },
   ]);
 
   return res
