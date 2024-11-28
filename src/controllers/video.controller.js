@@ -28,23 +28,25 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const { videoTitle, videoDesc, videoGenre, videoTags } = req.body;
 
-  const videoFileLocalPath =
-    req.files &&
-    Array.isArray(req.files.videoFile) &&
-    req.files.videoFile.length > 0
-      ? req.files.videoFile[0].path
-      : undefined;
+  const { path: videoFileLocalPath, mimetype: videoFileMimetype } = req.files
+    ?.videoFile?.[0] || { path: undefined, mimetype: undefined };
 
-  const videoThumbnailLocalPath =
-    req.files &&
-    Array.isArray(req.files.videoThumbnail) &&
-    req.files.videoThumbnail.length > 0
-      ? req.files.videoThumbnail[0].path
-      : undefined;
+  const { path: videoThumbnailLocalPath, mimetype: videoThumbnailMimetype } =
+    req.files?.videoThumbnail?.[0] || { path: undefined, mimetype: undefined };
 
   if (username !== req.user?.username) {
     deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
     throw new ApiError(401, "VIDEO UPLOAD ERROR:: Unauthorised user access");
+  }
+
+  if (videoFileMimetype && !videoFileMimetype.startsWith("video/")) {
+    deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
+    throw new ApiError(400, "VIDEO UPLOAD ERROR:: Invalid video file type");
+  }
+
+  if (videoThumbnailMimetype && !videoThumbnailMimetype.startsWith("image/")) {
+    deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
+    throw new ApiError(400, "VIDEO UPLOAD ERROR:: Invalid thumbnail file type");
   }
 
   if (!videoFileLocalPath) {
@@ -52,7 +54,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     throw new ApiError(400, "VIDEO UPLOAD ERROR:: Video file required");
   }
 
-  if (!videoTitle.trim()) {
+  if (!videoTitle?.trim()) {
     deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
     throw new ApiError(400, "VIDEO UPLOAD ERROR:: Video title required");
   }
@@ -81,8 +83,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
   });
 
   if (!video) {
-    if (videoFile) deleteFromCloudinary(videoFile.public_id, "video");
-    if (videoThumbnail) deleteFromCloudinary(videoThumbnail.public_id);
+    if (videoFile) await deleteFromCloudinary(videoFile.public_id, "video");
+    if (videoThumbnail) await deleteFromCloudinary(videoThumbnail.public_id);
     throw new ApiError(
       500,
       "VIDEO UPLOAD ERROR:: Something went wrong while saving video to mongodb"
@@ -258,9 +260,16 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 // UPDATE VIDEO THUMBNAIL
 const updateVideoThumbnail = asyncHandler(async (req, res) => {
   // check if new thumbnail is given
-  const thumbnailLocalPath = req.file?.path;
+  const { path: thumbnailLocalPath, mimetype: thumbnailMimetype } =
+    req.file || { path: undefined, mimetype: undefined };
+
   if (!thumbnailLocalPath) {
     throw new ApiError(400, "VIDEO UPDATE ERROR:: Thumbnail is required");
+  }
+
+  if (thumbnailMimetype && !thumbnailMimetype.startsWith("image/")) {
+    deleteTempFilesOnError([thumbnailLocalPath]);
+    throw new ApiError(400, "VIDEO UPDATE ERROR:: Invalid thumbnail file type");
   }
 
   // check unauthorized access
@@ -269,7 +278,7 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
     deleteTempFilesOnError([thumbnailLocalPath]);
     throw new ApiError(401, "VIDEO UPDATE ERROR:: Unauthorised user access");
   }
-  
+
   // check if video id is valid
   const video = await Video.findById({ _id: id });
   if (!video) {
@@ -302,10 +311,15 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
   }
 
   // if new thumbnail uploaded and updated successfully then delete old thumbnail from cloudinary
-  const { thumbnailPublicId } = video;
-  const delResponse = thumbnailPublicId ? deleteFromCloudinary(thumbnailPublicId) : undefined;
-  if(thumbnailPublicId && !delResponse) {
-    throw new ApiError(500, "VIDEO UPDATE ERROR:: Could not delete old thumbnail");
+  const { thumbnailPublicId: oldThumbnailPublicId } = video;
+  const delResponse = oldThumbnailPublicId
+    ? await deleteFromCloudinary(oldThumbnailPublicId)
+    : undefined;
+  if (oldThumbnailPublicId && !delResponse) {
+    throw new ApiError(
+      500,
+      "VIDEO UPDATE ERROR:: Could not delete old thumbnail"
+    );
   }
 
   return res

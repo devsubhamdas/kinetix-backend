@@ -41,10 +41,14 @@ router.route("/update/password").put(verifyJWT, updatePassword);
 router.route("/update/account-details").put(verifyJWT, updateAccountDetails);
 
 // user update avatar image
-router.route("/update/avatar-image").put(verifyJWT, upload.single("avatar"), updateAvatar);
+router
+  .route("/update/avatar-image")
+  .put(verifyJWT, upload.single("avatar"), updateAvatar);
 
 // user update cover image
-router.route("/update/cover-image").put(verifyJWT, upload.single("coverImage"), updateCoverImage);
+router
+  .route("/update/cover-image")
+  .put(verifyJWT, upload.single("coverImage"), updateCoverImage);
 
 // get user watch history
 router.route("/watch-history").get(verifyJWT, getWatchHistory);

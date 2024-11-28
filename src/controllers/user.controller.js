@@ -39,21 +39,15 @@ const registerUser = asyncHandler(async (req, res) => {
     - remove password and refreshToken from response object
     - return response
   */
-  
+
   // get form data and files
   const { username, email, password, fullName, contentGenre, tags } = req.body;
 
-  const avatarLocalPath =
-    req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0
-      ? req.files.avatar[0].path
-      : undefined;
+  const { path: avatarLocalPath, mimetype: avatarMimetype } = req.files
+    ?.avatar?.[0] || { path: undefined, mimetype: undefined };
 
-  const coverImageLocalPath =
-    req.files &&
-    Array.isArray(req.files.coverImage) &&
-    req.files.coverImage.length > 0
-      ? req.files.coverImage[0].path
-      : undefined;
+  const { path: coverImageLocalPath, mimetype: coverImageMimetype } = req.files
+    ?.coverImage?.[0] || { path: undefined, mimetype: undefined };
 
   // validate for empty fields
   if (
@@ -67,6 +61,20 @@ const registerUser = asyncHandler(async (req, res) => {
   if (!avatarLocalPath) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
     throw new ApiError(400, "REGISTRATION ERROR:: Avatar image required");
+  }
+
+  // validate file type
+  if (!avatarMimetype?.startsWith("image/")) {
+    deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
+    throw new ApiError(400, "REGISTRATION ERROR:: Invalid avatar file type");
+  }
+
+  if (coverImageMimetype && !coverImageMimetype.startsWith("image/")) {
+    deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
+    throw new ApiError(
+      400,
+      "REGISTRATION ERROR:: Invalid cover image file type"
+    );
   }
 
   // validate if user already exits
@@ -129,7 +137,7 @@ const loginUser = asyncHandler(async (req, res) => {
     - get access and refresh token
     - send cookie
   */
-  
+
   const { username, email, password } = req.body;
 
   // validate empty field
@@ -250,19 +258,26 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
 // UPDATE USER AVATAR - require multer upload and verifyJWT middlewares
 const updateAvatar = asyncHandler(async (req, res) => {
-  const localPath = req.file ? req.file?.path : undefined;
-  const { avatarPublicId } = await User.findById(req.user?._id).select(
-    "avatarPublicId"
-  );
+  const { path: localPath, mimetype: fileMimetype } = req.file || {
+    path: undefined,
+    mimetype: undefined,
+  };
+  const { avatarPublicId: oldAvatarPublicId } = await User.findById(
+    req.user?._id
+  ).select("avatarPublicId");
 
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
   }
 
-  const avatar = await uploadOnCloudinary(localPath);
-
-  if (!avatar) {
+  if (!fileMimetype?.startsWith("image/")) {
     deleteTempFilesOnError([localPath]);
+    throw new ApiError(400, "UPDATE ERROR:: Invalid image file type");
+  }
+
+  const newAvatar = await uploadOnCloudinary(localPath);
+
+  if (!newAvatar) {
     throw new ApiError(
       400,
       "UPDATE ERROR:: Something went wrong while uploading avatar image"
@@ -270,13 +285,13 @@ const updateAvatar = asyncHandler(async (req, res) => {
   }
 
   // delete old avatar image from cloudinary
-  if (avatarPublicId && avatar) {
-    await deleteFromCloudinary(avatarPublicId);
+  if (oldAvatarPublicId && newAvatar) {
+    await deleteFromCloudinary(oldAvatarPublicId);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
-    { $set: { avatar: avatar.url, avatarPublicId: avatar.public_id } },
+    { $set: { avatar: newAvatar.url, avatarPublicId: newAvatar.public_id } },
     { new: true }
   ).select("-password -refreshToken");
 
@@ -287,19 +302,27 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
 // UPDATE USER COVER-IMAGE - require multer upload and verifyJWT middlewares
 const updateCoverImage = asyncHandler(async (req, res) => {
-  const localPath = req.file ? req.file?.path : undefined;
-  const { coverImagePublicId } = await User.findById(req.user?._id).select(
-    "coverImagePublicId"
-  );
+  const { path: localPath, mimetype: fileMimetype } = req.file || {
+    path: undefined,
+    mimetype: undefined,
+  };
+
+  const { coverImagePublicId: oldCoverImagePublicId } = await User.findById(
+    req.user?._id
+  ).select("coverImagePublicId");
 
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
   }
-
-  const coverImage = await uploadOnCloudinary(localPath);
-
-  if (!coverImage) {
+  
+  if(!fileMimetype?.startsWith("image/")) {
     deleteTempFilesOnError([localPath]);
+    throw new ApiError(400, "UPDATE ERROR:: Invalid image file type");
+  }
+
+  const newCoverImage = await uploadOnCloudinary(localPath);
+
+  if (!newCoverImage) {
     throw new ApiError(
       400,
       "UPDATE ERROR:: Something went wrong while uploading cover image"
@@ -307,16 +330,16 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   }
 
   // delete old cover-image from cloudinary if available
-  if (coverImagePublicId && coverImage) {
-    await deleteFromCloudinary(coverImagePublicId);
+  if (oldCoverImagePublicId && newCoverImage) {
+    await deleteFromCloudinary(oldCoverImagePublicId);
   }
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        coverImage: coverImage.url,
-        coverImagePublicId: coverImage.public_id,
+        coverImage: newCoverImage.url,
+        coverImagePublicId: newCoverImage.public_id,
       },
     },
     { new: true }
@@ -386,20 +409,14 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     );
 });
 
-// SET WATCH HISTORY - require verifyJWT middleware 
-const setWatchHistory = asyncHandler(async (req, res) => {
-
-});
+// SET WATCH HISTORY - require verifyJWT middleware
+const setWatchHistory = asyncHandler(async (req, res) => {});
 
 // GET SUBSCRIPTION LIST - require verifyJWT middleware
-const getSubscriptionList = asyncHandler(async (req, res) => {
-
-});
+const getSubscriptionList = asyncHandler(async (req, res) => {});
 
 // SET SUBSCRIPTION LIST - require verifyJWT middleware
-const setSubscriptionList = asyncHandler(async (req, res) => {
-
-});
+const setSubscriptionList = asyncHandler(async (req, res) => {});
 
 // RE-ESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
 const refreshAccessSession = asyncHandler(async (req, res) => {
