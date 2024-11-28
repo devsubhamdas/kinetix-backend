@@ -15,9 +15,9 @@ import { COOKIE_OPTIONS } from "../constants.js";
 // GET CHANNEL INFO AND STATS
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  console.log(username);
+  
   if (!username?.trim()) {
-    throw new ApiError(400, "CHANNEL ERROR:: Username not found");
+    throw new ApiError(400, "CHANNEL ERROR:: Username is required");
   }
 
   const [channel] = await User.aggregate([
@@ -99,7 +99,7 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
   const channel = await User.findOne({ username });
 
   if (!username || !channel) {
-    throw new ApiError(400, "CHANNEL ERROR:: User not found");
+    throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
   }
 
   const videos = await Video.aggregate([

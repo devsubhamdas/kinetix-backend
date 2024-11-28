@@ -61,7 +61,10 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const videoThumbnail = await uploadOnCloudinary(videoThumbnailLocalPath);
 
   if (!videoFile) {
-    throw new ApiError(500, "VIDEO UPLOAD ERROR: Something went while uploading video to cloudinary");
+    throw new ApiError(
+      500,
+      "VIDEO UPLOAD ERROR: Something went while uploading video to cloudinary"
+    );
   }
 
   const video = await Video.create({
@@ -78,8 +81,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
   });
 
   if (!video) {
-    if(videoFile) deleteFromCloudinary(videoFile.public_id, "video");
-    if(videoThumbnail) deleteFromCloudinary(videoThumbnail.public_id);
+    if (videoFile) deleteFromCloudinary(videoFile.public_id, "video");
+    if (videoThumbnail) deleteFromCloudinary(videoThumbnail.public_id);
     throw new ApiError(
       500,
       "VIDEO UPLOAD ERROR:: Something went wrong while saving video to mongodb"
@@ -253,6 +256,64 @@ const updateVideoDetails = asyncHandler(async (req, res) => {
 });
 
 // UPDATE VIDEO THUMBNAIL
+const updateVideoThumbnail = asyncHandler(async (req, res) => {
+  // check if new thumbnail is given
+  const thumbnailLocalPath = req.file?.path;
+  if (!thumbnailLocalPath) {
+    throw new ApiError(400, "VIDEO UPDATE ERROR:: Thumbnail is required");
+  }
+
+  // check unauthorized access
+  const { username, id } = req.params;
+  if (username !== req.user.username) {
+    deleteTempFilesOnError([thumbnailLocalPath]);
+    throw new ApiError(401, "VIDEO UPDATE ERROR:: Unauthorised user access");
+  }
+  
+  // check if video id is valid
+  const video = await Video.findById({ _id: id });
+  if (!video) {
+    deleteTempFilesOnError([thumbnailLocalPath]);
+    throw new ApiError(404, "VIDEO UPDATE ERROR:: Invalid video id");
+  }
+
+  // check if thumbnail is uploaded successfully on cloudinary or not
+  const newThumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+  if (!newThumbnail) {
+    throw new ApiError(
+      500,
+      "VIDEO UPDATE ERROR:: Something went wrong while uploading thumbnail on cloudinary"
+    );
+  }
+
+  // update thumbnail on mongodb
+  const newVideo = await Video.findByIdAndUpdate(
+    id,
+    { thumbnail: newThumbnail.url, thumbnailPublicId: newThumbnail.public_id },
+    { new: true }
+  );
+
+  // check if thumbnail is update successfully or not
+  if (!newVideo) {
+    throw new ApiError(
+      500,
+      "VIDEO UPDATE ERROR:: Something went wrong while saving thumbnail on mongodb"
+    );
+  }
+
+  // if new thumbnail uploaded and updated successfully then delete old thumbnail from cloudinary
+  const { thumbnailPublicId } = video;
+  const delResponse = thumbnailPublicId ? deleteFromCloudinary(thumbnailPublicId) : undefined;
+  if(thumbnailPublicId && !delResponse) {
+    throw new ApiError(500, "VIDEO UPDATE ERROR:: Could not delete old thumbnail");
+  }
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, newVideo, "Video thumbnail updated successfully")
+    );
+});
 
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
@@ -342,4 +403,10 @@ const updatePlaylist = asyncHandler(async (req, res) => {});
 // GET ALL PLAYLISTS
 const getAllPlaylists = asyncHandler(async (req, res) => {});
 
-export { uploadVideo, deleteVideo, getVideoById, updateVideoDetails };
+export {
+  uploadVideo,
+  deleteVideo,
+  getVideoById,
+  updateVideoDetails,
+  updateVideoThumbnail,
+};
