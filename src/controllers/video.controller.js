@@ -365,7 +365,7 @@ const getVideoById = asyncHandler(async (req, res) => {
   ]);
 
   if (!video) {
-    throw new ApiError(400, "GET VIDEO ERROR:: Video not found");
+    throw new ApiError(404, "GET VIDEO ERROR:: Video not found");
   }
 
   return res
@@ -378,30 +378,6 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {});
 
 // TOGGLE VIDEO STATUS
 const toggleVideoStatus = asyncHandler(async (req, res) => {});
-
-// CREATE POST
-const createPost = asyncHandler(async (req, res) => {});
-
-// DELETE POST
-const deletePost = asyncHandler(async (req, res) => {});
-
-// UPDATE POST
-const updatePost = asyncHandler(async (req, res) => {});
-
-// GET ALL POST
-const getAllPosts = asyncHandler(async (req, res) => {});
-
-// CREATE PLAYLIST
-const createPlaylist = asyncHandler(async (req, res) => {});
-
-// DELETE PLAYLIST
-const deletePlaylist = asyncHandler(async (req, res) => {});
-
-// UPDATE PLAYLIST
-const updatePlaylist = asyncHandler(async (req, res) => {});
-
-// GET ALL PLAYLISTS
-const getAllPlaylists = asyncHandler(async (req, res) => {});
 
 export {
   uploadVideo,
