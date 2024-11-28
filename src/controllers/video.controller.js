@@ -61,8 +61,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
   const videoThumbnail = await uploadOnCloudinary(videoThumbnailLocalPath);
 
   if (!videoFile) {
-    deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
-    throw new ApiError(400, "VIDEO UPLOAD ERROR: Video file required");
+    throw new ApiError(500, "VIDEO UPLOAD ERROR: Something went while uploading video to cloudinary");
   }
 
   const video = await Video.create({
@@ -79,10 +78,11 @@ const uploadVideo = asyncHandler(async (req, res) => {
   });
 
   if (!video) {
-    deleteTempFilesOnError([videoFileLocalPath, videoThumbnailLocalPath]);
+    if(videoFile) deleteFromCloudinary(videoFile.public_id, "video");
+    if(videoThumbnail) deleteFromCloudinary(videoThumbnail.public_id);
     throw new ApiError(
       500,
-      "VIDEO UPLOAD ERROR:: Something went wrong while uploading video"
+      "VIDEO UPLOAD ERROR:: Something went wrong while saving video to mongodb"
     );
   }
 
@@ -125,6 +125,11 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
   const [video] = await Video.aggregate([
     {
+      $match: {
+        _id: new mongoose.Types.ObjectId(String(id)),
+      },
+    },
+    {
       $lookup: {
         from: "users",
         localField: "owner",
@@ -142,11 +147,6 @@ const deleteVideo = asyncHandler(async (req, res) => {
     {
       $match: {
         "owner.username": channel.username,
-      },
-    },
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(String(id)),
       },
     },
     {
@@ -264,6 +264,11 @@ const getVideoById = asyncHandler(async (req, res) => {
 
   const [video] = await Video.aggregate([
     {
+      $match: {
+        _id: new mongoose.Types.ObjectId(String(id)),
+      },
+    },
+    {
       $lookup: {
         from: "users",
         localField: "owner",
@@ -281,11 +286,6 @@ const getVideoById = asyncHandler(async (req, res) => {
     {
       $match: {
         "owner.username": username,
-      },
-    },
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(String(id)),
       },
     },
     {

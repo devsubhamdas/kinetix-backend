@@ -5,7 +5,7 @@ const deleteTempFilesOnError = (localFilePaths) => {
 };
 
 const parseTags = (tags) => {
-  return tags?.split(",").map(tag => tag.trim());
+  return tags?.split(",").map(tag => `#${tag.trim().toLowerCase()}`);
 };
 
 export {
