@@ -10,9 +10,6 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { deleteTempFilesOnError } from "../utils/helper.js";
-import fs from "fs";
-import jwt from "jsonwebtoken";
-import { COOKIE_OPTIONS } from "../constants.js";
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -60,7 +57,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   const videoFile = await uploadOnCloudinary(videoFileLocalPath);
-  const videoThumbnail = await uploadOnCloudinary(videoThumbnailLocalPath);
+  const videoThumbnail = videoThumbnailLocalPath ? await uploadOnCloudinary(videoThumbnailLocalPath) : undefined;
 
   if (!videoFile) {
     throw new ApiError(
@@ -334,7 +331,7 @@ const getVideoById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
 
   if (!username || !id) {
-    throw new ApiError(400, "GET VIDEO ERROR:: Username and v_id required");
+    throw new ApiError(400, "GET VIDEO ERROR:: Username and id required");
   }
 
   const [video] = await Video.aggregate([

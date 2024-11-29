@@ -11,6 +11,10 @@ import {
   updateVideoDetails,
   updateVideoThumbnail,
 } from "../controllers/video.controller.js";
+import {
+  createPost,
+  deletePost
+} from "../controllers/communityPost.controller.js"
 
 const router = Router();
 
@@ -47,9 +51,10 @@ router
   .put(verifyJWT, upload.single("thumbnail"), updateVideoThumbnail);
 
 // create a post
-router.route("/:username/create/post").post(verifyJWT);
+router.route("/:username/post/create").post(verifyJWT, upload.single("post"), createPost);
 
 // delete a post
+router.route("/:username/post/delete/id/:id").post(verifyJWT, deletePost);
 
 // update a post
 

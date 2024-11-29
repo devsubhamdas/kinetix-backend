@@ -3,19 +3,18 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
 
 const communityPostSchema = new Schema(
   {
+    content: {
+      type: String,
+      required: true,
+    },
+    attachment: String,
+    attachmentPublicId: String,
+    tags: [String],
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    content: {
-      type: String,
-      required: true,
-    },
-    attachment: {
-      type: String,
-      default: null
-    }
   },
   { timestamps: true }
 );
