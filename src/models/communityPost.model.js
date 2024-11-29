@@ -12,6 +12,10 @@ const communityPostSchema = new Schema(
       type: String,
       required: true,
     },
+    attachment: {
+      type: String,
+      default: null
+    }
   },
   { timestamps: true }
 );
