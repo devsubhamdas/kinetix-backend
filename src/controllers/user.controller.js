@@ -103,8 +103,8 @@ const registerUser = asyncHandler(async (req, res) => {
     fullName,
     avatar: avatar.url,
     avatarPublicId: avatar.public_id,
-    coverImage: coverImage?.url || "",
-    coverImagePublicId: coverImage?.public_id || "",
+    coverImage: coverImage?.url || null,
+    coverImagePublicId: coverImage?.public_id || null,
     contentGenre: contentGenre?.toLowerCase(),
     tags: tags?.trim() ? parseTags(tags) : [],
   });

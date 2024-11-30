@@ -68,14 +68,14 @@ const uploadVideo = asyncHandler(async (req, res) => {
 
   const video = await Video.create({
     videoFile: videoFile.url,
-    thumbnail: videoThumbnail?.url || "",
+    thumbnail: videoThumbnail?.url || null,
     owner: req.user?._id,
     title: videoTitle,
-    description: videoDesc?.trim() || "",
+    description: videoDesc?.trim() || null,
     genre: videoGenre?.toLowerCase() || "video",
     tags: videoTags?.trim() ? parseTags(videoTags) : [],
     videoPublicId: videoFile.public_id,
-    thumbnailPublicId: videoThumbnail?.public_id || "",
+    thumbnailPublicId: videoThumbnail?.public_id || null,
     duration: videoFile.duration,
   });
 

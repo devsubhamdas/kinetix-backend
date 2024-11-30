@@ -60,8 +60,8 @@ const createPost = asyncHandler(async (req, res) => {
     owner: req.user?._id,
     content,
     tags: tags?.trim() ? parseTags(tags) : [],
-    attachment: attachment?.url || "",
-    attachmentPublicId: attachment?.public_id || "",
+    attachment: attachment?.url || null,
+    attachmentPublicId: attachment?.public_id || null,
   });
 
   if (!newCommunityPost) {
