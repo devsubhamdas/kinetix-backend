@@ -25,9 +25,8 @@ const createPost = asyncHandler(async (req, res) => {
   */
 
   const { content, tags } = req.body;
-  const { path: attachmentLocalPath, mimetype: attachmentMimetype } = req.file
-    ? req.file
-    : { path: undefined, mimetype: undefined };
+  const { path: attachmentLocalPath, mimetype: attachmentMimetype } =
+    req.file || { path: undefined, mimetype: undefined };
 
   if (attachmentLocalPath && !attachmentMimetype.startsWith("image/")) {
     deleteTempFilesOnError([attachmentLocalPath]);
@@ -165,7 +164,105 @@ const deletePost = asyncHandler(async (req, res) => {
 });
 
 // UPDATE POST
-const updatePost = asyncHandler(async (req, res) => {});
+const updatePost = asyncHandler(async (req, res) => {
+  const { username, id } = req.params;
+  const { content, tags } = req.body;
+  const { path: attachmentLocalPath, mimetype: attachmentMimetype } =
+    req.file || { path: undefined, mimetype: undefined };
+
+  // validate unauthorised user access
+  if (username !== req.user.username) {
+    if (attachmentLocalPath) deleteTempFilesOnError([attachmentLocalPath]);
+    throw new ApiError(401, "POST UPDATE ERROR:: Unauthorised user access");
+  }
+
+  if (!username || !id) {
+    throw new ApiError(
+      400,
+      "POST UPDATE ERROR:: Username and Post Id required"
+    );
+  }
+
+  // validate channelname
+  const channel = await User.findOne({ username });
+
+  if (!channel) {
+    if (attachmentLocalPath) deleteTempFilesOnError([attachmentLocalPath]);
+    throw new ApiError(404, "POST UPDATE ERROR:: Unknown username");
+  }
+
+  // validate empty post content
+  if (!content) {
+    if (attachmentLocalPath) deleteTempFilesOnError([attachmentLocalPath]);
+    throw new ApiError(400, "POST UPDATE ERROR:: Content is required");
+  }
+
+  // validate attachment file type
+  if (attachmentLocalPath && !attachmentMimetype?.startsWith("image/")) {
+    if (attachmentLocalPath) deleteTempFilesOnError([attachmentLocalPath]);
+    throw new ApiError(400, "POST UPDATE ERROR:: Invalid attachment file type");
+  }
+
+  // upload new attachmenti on cloudinary if given
+  const newAttachment = attachmentLocalPath
+    ? await uploadOnCloudinary(attachmentLocalPath)
+    : undefined;
+
+  if (attachmentLocalPath && !newAttachment) {
+    throw new ApiError(
+      500,
+      "POST UPDATE ERROR:: Something went wrong while uploading attachment on cloudinary"
+    );
+  }
+
+
+  // delete old attachment if previously available
+  const post = await CommunityPost.findById(id);
+
+  if (!post) {
+    throw new ApiError(404, "POST UPDATE ERROR:: Invalid Post id");
+  }
+
+  const { attachmentPublicId: oldAttachmentPublicId } = post;
+
+  const attachmentDelResponse =
+    oldAttachmentPublicId && newAttachment
+      ? await deleteFromCloudinary(oldAttachmentPublicId)
+      : undefined;
+
+  if (oldAttachmentPublicId && attachmentDelResponse?.error) {
+    throw new ApiError(
+      500,
+      "POST UPDATE ERROR:: Something went wrong while deleting old attachment from cloudinary"
+    );
+  }
+
+  // update post
+  const newCommunityPost = await CommunityPost.findByIdAndUpdate(
+    id,
+    {
+      $set: {
+        content,
+        tags: tags && parseTags(tags),
+        attachment: newAttachment?.url,
+        attachmentPublicId: newAttachment?.public_id,
+      },
+    },
+    {
+      new: true,
+    }
+  );
+  if (!newCommunityPost) {
+    throw new ApiError(
+      404,
+      "POST UPDATE ERROR:: Something went wrong while updating post to mongodb"
+    );
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, newCommunityPost, "Post updated successfully"));
+});
 
 // GET ALL POST
 const getPostById = asyncHandler(async (req, res) => {
@@ -220,4 +317,4 @@ const getPostById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, communityPost, "Post fetched successfully"));
 });
 
-export { createPost, deletePost, getPostById };
+export { createPost, deletePost, updatePost, getPostById };
