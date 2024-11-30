@@ -3,6 +3,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import Video from "../models/video.model.js";
+import CommunityPost from "../models/communityPost.model.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
@@ -15,7 +16,7 @@ import { COOKIE_OPTIONS } from "../constants.js";
 // GET CHANNEL INFO AND STATS
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  
+
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username is required");
   }
@@ -141,9 +142,56 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
 });
 
 // GET COMMUNITY POSTS BY CHANNEL NAME
-const getAllPostsByChannelName = asyncHandler(async (req, res) => {});
+const getAllPostsByChannelName = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  const channel = await User.findOne({ username });
+
+  if (!username || !channel) {
+    throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
+  }
+
+  const posts = await CommunityPost.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $match: {
+        "owner.username": channel.username,
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        attachment: 1,
+        tags: 1,
+        createdAt: 1,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, posts, "All posts fetched successfully"));
+});
 
 // GET PLAYLISTS BY CHANNEL NAME
 const getAllPlaylistsByChannelName = asyncHandler(async (req, res) => {});
 
-export { getChannelInfoAndStats, getAllVideosByChannelName };
+export {
+  getChannelInfoAndStats,
+  getAllVideosByChannelName,
+  getAllPostsByChannelName,
+};
