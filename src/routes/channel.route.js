@@ -40,7 +40,7 @@ router.route("/:username/video/upload").post(
 );
 
 // delete a video
-router.route("/:username/video/delete/id/:id").post(verifyJWT, deleteVideo);
+router.route("/:username/video/delete/id/:id").delete(verifyJWT, deleteVideo);
 
 // update video details
 router
@@ -56,10 +56,10 @@ router
 router.route("/:username/post/create").post(verifyJWT, upload.single("attachment"), createPost);
 
 // delete a post
-router.route("/:username/post/delete/id/:id").post(verifyJWT, deletePost);
+router.route("/:username/post/delete/id/:id").delete(verifyJWT, deletePost);
 
 // update a post
-router.route("/:username/post/update/id/:id").post(verifyJWT, upload.single("attachment"), updatePost);
+router.route("/:username/post/update/id/:id").put(verifyJWT, upload.single("attachment"), updatePost);
 
 // create playlist
 

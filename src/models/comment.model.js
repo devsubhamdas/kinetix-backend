@@ -19,7 +19,7 @@ const commentSchema = new Schema(
     },
     refId: {
       type: Schema.Types.ObjectId,
-      refPath: 'refType',
+      refPath: "refType",
       required: true,
     },
   },
