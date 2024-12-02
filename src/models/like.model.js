@@ -2,21 +2,23 @@ import mongoose, { Schema } from "mongoose";
 
 const likeSchema = new Schema(
   {
-    likedBy: {
+    impression: {
+      type: Boolean,
+      required: true,
+    },
+    madeBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    video: {
-      type: Schema.Types.ObjectId,
-      ref: "Video",
+    impressionRefType: {
+      type: String,
+      enum: ["Video", "CommunityPost", "Comment"],
+      required: true,
     },
-    comment: {
+    impressionMadeTo: {
       type: Schema.Types.ObjectId,
-      ref: "Comment",
-    },
-    communityPost: {
-      type: Schema.Types.ObjectId,
-      ref: "CommunityPost",
+      refPath: "impressionRefType",
+      required: true,
     },
   },
   { timestamps: true }
