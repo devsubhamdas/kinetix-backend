@@ -20,12 +20,14 @@ app.use(cookieParser());
 import userRouter from "./routes/user.route.js";
 import channelRouter from "./routes/channel.route.js";
 import watchRouter from "./routes/watch.route.js";
+import postRouter from "./routes/post.route.js";
 import commentRouter from "./routes/comment.route.js"
 
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/channel", channelRouter);
 app.use("/api/v1/watch", watchRouter);
+app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 
 // http://localhost:3000/api/v1/user/register
