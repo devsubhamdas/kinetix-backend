@@ -215,7 +215,6 @@ const updatePost = asyncHandler(async (req, res) => {
     );
   }
 
-
   // delete old attachment if previously available
   const post = await CommunityPost.findById(id);
 
@@ -264,7 +263,53 @@ const updatePost = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, newCommunityPost, "Post updated successfully"));
 });
 
-// GET ALL POST
+// GET COMMUNITY POSTS BY CHANNEL NAME
+const getAllPostsByChannelName = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  const channel = await User.findOne({ username });
+
+  if (!username || !channel) {
+    throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
+  }
+
+  const posts = await CommunityPost.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $match: {
+        "owner.username": channel.username,
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        attachment: 1,
+        tags: 1,
+        createdAt: 1,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, posts, "All posts fetched successfully"));
+});
+
+// GET POST BY ID
 const getPostById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
   if (!username || !id) {
@@ -317,4 +362,10 @@ const getPostById = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, communityPost, "Post fetched successfully"));
 });
 
-export { createPost, deletePost, updatePost, getPostById };
+export {
+  createPost,
+  deletePost,
+  updatePost,
+  getAllPostsByChannelName,
+  getPostById,
+};

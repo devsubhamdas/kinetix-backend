@@ -1,22 +1,20 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import {
-  getChannelInfoAndStats,
-  getAllVideosByChannelName,
-  getAllPostsByChannelName
-} from "../controllers/channel.controller.js";
+import { getChannelInfoAndStats } from "../controllers/user.controller.js";
 import {
   uploadVideo,
   deleteVideo,
   updateVideoDetails,
   updateVideoThumbnail,
+  getAllVideosByChannelName,
 } from "../controllers/video.controller.js";
 import {
   createPost,
   deletePost,
-  updatePost
-} from "../controllers/communityPost.controller.js"
+  updatePost,
+  getAllPostsByChannelName
+} from "../controllers/communityPost.controller.js";
 
 const router = Router();
 
@@ -53,13 +51,17 @@ router
   .put(verifyJWT, upload.single("thumbnail"), updateVideoThumbnail);
 
 // create a post
-router.route("/:username/post/create").post(verifyJWT, upload.single("attachment"), createPost);
+router
+  .route("/:username/post/create")
+  .post(verifyJWT, upload.single("attachment"), createPost);
 
 // delete a post
 router.route("/:username/post/delete/id/:id").delete(verifyJWT, deletePost);
 
 // update a post
-router.route("/:username/post/update/id/:id").put(verifyJWT, upload.single("attachment"), updatePost);
+router
+  .route("/:username/post/update/id/:id")
+  .put(verifyJWT, upload.single("attachment"), updatePost);
 
 // create playlist
 

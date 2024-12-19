@@ -328,6 +328,54 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
     );
 });
 
+// GET VIDEOS BY CHANNEL NAME
+const getAllVideosByChannelName = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+
+  const channel = await User.findOne({ username });
+
+  if (!username || !channel) {
+    throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
+  }
+
+  const videos = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $match: {
+        "owner.username": channel.username,
+      },
+    },
+    {
+      $project: {
+        videoFile: 1,
+        thumbnail: 1,
+        title: 1,
+        duration: 1,
+        views: 1,
+        createdAt: 1,
+      },
+    },
+  ]);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, videos, "All videos fetched successfully"));
+});
+
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
@@ -428,8 +476,9 @@ const toggleVideoStatus = asyncHandler(async (req, res) => {});
 export {
   uploadVideo,
   deleteVideo,
-  getVideoById,
   updateVideoDetails,
   updateVideoThumbnail,
+  getAllVideosByChannelName,
+  getVideoById,
   getVideosByRecommendation,
 };
