@@ -57,7 +57,9 @@ const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   const videoFile = await uploadOnCloudinary(videoFileLocalPath);
-  const videoThumbnail = videoThumbnailLocalPath ? await uploadOnCloudinary(videoThumbnailLocalPath) : undefined;
+  const videoThumbnail = videoThumbnailLocalPath
+    ? await uploadOnCloudinary(videoThumbnailLocalPath)
+    : undefined;
 
   if (!videoFile) {
     throw new ApiError(
@@ -385,7 +387,40 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 // GET VIDEO BY RECOMMENDATION
-const getVideosByRecommendation = asyncHandler(async (req, res) => {});
+const getVideosByRecommendation = asyncHandler(async (_, res) => {
+  const videos = await Video.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },{
+      $project: {
+        thumbnail: 1,
+        title: 1,
+        duration: 1,
+        views: 1,
+        createdAt: 1,
+        "owner.username": 1,
+        "owner.avatar": 1,
+      }
+    }
+  ]);
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, videos, "Recommended videos fetched successfully")
+    );
+});
 
 // TOGGLE VIDEO STATUS
 const toggleVideoStatus = asyncHandler(async (req, res) => {});
@@ -396,4 +431,5 @@ export {
   getVideoById,
   updateVideoDetails,
   updateVideoThumbnail,
+  getVideosByRecommendation,
 };

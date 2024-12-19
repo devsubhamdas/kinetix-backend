@@ -22,6 +22,7 @@ import channelRouter from "./routes/channel.route.js";
 import watchRouter from "./routes/watch.route.js";
 import postRouter from "./routes/post.route.js";
 import commentRouter from "./routes/comment.route.js"
+import recommendRouter from "./routes/recommend.route.js";
 
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
@@ -29,6 +30,7 @@ app.use("/api/v1/channel", channelRouter);
 app.use("/api/v1/watch", watchRouter);
 app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
+app.use("/api/v1/recommend", recommendRouter);
 
 // http://localhost:3000/api/v1/user/register
 
