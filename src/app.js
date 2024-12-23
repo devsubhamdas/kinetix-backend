@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import ApiError from "./utils/ApiError.js";
 
 const app = express();
 
@@ -11,7 +12,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json({limit: "16kb"}));
+app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
@@ -21,7 +22,7 @@ import userRouter from "./routes/user.route.js";
 import channelRouter from "./routes/channel.route.js";
 import watchRouter from "./routes/watch.route.js";
 import postRouter from "./routes/post.route.js";
-import commentRouter from "./routes/comment.route.js"
+import commentRouter from "./routes/comment.route.js";
 import recommendRouter from "./routes/recommend.route.js";
 
 // DECLARE ROUTES
@@ -32,6 +33,20 @@ app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/recommend", recommendRouter);
 
-// http://localhost:3000/api/v1/user/register
+// Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json in client-side.
+app.use((err, req, res, next) => {
+  if (err instanceof ApiError) {
+    res.status(err.statusCode).json({
+      success: err.success,
+      message: err.message,
+      errors: err.errors,
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+});
 
 export default app;

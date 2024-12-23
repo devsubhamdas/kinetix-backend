@@ -84,7 +84,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
-    throw new ApiError(409, "REGISTRATION ERROR:: User already exists");
+    throw new ApiError(409, "REGISTRATION ERROR:: User already exists")
   }
 
   // upload file to cloudinary
@@ -105,7 +105,7 @@ const registerUser = asyncHandler(async (req, res) => {
     avatarPublicId: avatar.public_id,
     coverImage: coverImage?.url || null,
     coverImagePublicId: coverImage?.public_id || null,
-    contentGenre: contentGenre?.toLowerCase(),
+    contentGenre: contentGenre?.toLowerCase() || null,
     tags: tags?.trim() ? parseTags(tags) : [],
   });
 
