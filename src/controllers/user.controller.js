@@ -138,10 +138,10 @@ const loginUser = asyncHandler(async (req, res) => {
     - send cookie
   */
 
-  const { username, email, password } = req.body;
+  const { credential, password } = req.body;
 
   // validate empty field
-  if (!(username || email)) {
+  if (!credential) {
     throw new ApiError(400, "LOGIN ERROR:: Username or Email required");
   }
   if (!password) {
@@ -149,7 +149,7 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   // find user with incoming form data
-  const user = await User.findOne({ $or: [{ username }, { email }] });
+  const user = await User.findOne({ $or: [{ username: credential }, { email: credential }] });
 
   // no user found
   if (!user) {
@@ -166,16 +166,18 @@ const loginUser = asyncHandler(async (req, res) => {
   const { accessToken, refreshToken } =
     await generateAccessTokenAndRefreshToken(user._id);
 
-  // get loggedin user who have refresh token from database
+  // get updated loggedin user who now have refresh token from database
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
 
   // send client cookies
+  const accessTokenExpiaryInMilliseconds = 24 * 60 * 60 * 1000; // 1d
+  const refreshTokenExpiaryInMilliseconds = 10 * 24 * 60 * 60 * 1000; // 10d
   return res
     .status(200)
-    .cookie("accessToken", accessToken, COOKIE_OPTIONS)
-    .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+    .cookie("accessToken", accessToken, {...COOKIE_OPTIONS, maxAge: accessTokenExpiaryInMilliseconds})
+    .cookie("refreshToken", refreshToken, {...COOKIE_OPTIONS, maxAge: refreshTokenExpiaryInMilliseconds})
     .json(
       new ApiResponse(
         200,
