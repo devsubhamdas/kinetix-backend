@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import ApiError from "./utils/ApiError.js";
 
 const app = express();
 
@@ -33,20 +32,8 @@ app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/recommend", recommendRouter);
 
-// Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json in client-side.
-app.use((err, req, res, next) => {
-  if (err instanceof ApiError) {
-    res.status(err.statusCode).json({
-      success: err.success,
-      message: err.message,
-      errors: err.errors,
-    });
-  } else {
-    res.status(500).json({
-      success: false,
-      message: "Internal Server Error",
-    });
-  }
-});
+// Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
+import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+app.use(errorHandler);
 
 export default app;
