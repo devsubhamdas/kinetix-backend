@@ -11,7 +11,8 @@ import {
   updateAvatar,
   updateCoverImage,
   getWatchHistory,
-  refreshAccessSession,
+  refreshAccessToken,
+  validateAccessToken
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -53,7 +54,10 @@ router
 // get user watch history
 router.route("/watch-history").get(verifyJWT, getWatchHistory);
 
+// check if the accesstoken is valid
+router.route("/validate/access-token").post(validateAccessToken);
+
 // re-established session
-router.route("/renew/access-token").post(verifyJWT, refreshAccessSession);
+router.route("/renew/access-token").post(refreshAccessToken);
 
 export default router;

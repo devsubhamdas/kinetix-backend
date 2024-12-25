@@ -84,7 +84,7 @@ const registerUser = asyncHandler(async (req, res) => {
 
   if (userExists) {
     deleteTempFilesOnError([avatarLocalPath, coverImageLocalPath]);
-    throw new ApiError(409, "REGISTRATION ERROR:: User already exists")
+    throw new ApiError(409, "REGISTRATION ERROR:: User already exists");
   }
 
   // upload file to cloudinary
@@ -149,7 +149,9 @@ const loginUser = asyncHandler(async (req, res) => {
   }
 
   // find user with incoming form data
-  const user = await User.findOne({ $or: [{ username: credential }, { email: credential }] });
+  const user = await User.findOne({
+    $or: [{ username: credential }, { email: credential }],
+  });
 
   // no user found
   if (!user) {
@@ -171,13 +173,27 @@ const loginUser = asyncHandler(async (req, res) => {
     "-password -refreshToken"
   );
 
-  // send client cookies
-  const accessTokenExpiaryInMilliseconds = 24 * 60 * 60 * 1000; // 1d
-  const refreshTokenExpiaryInMilliseconds = 10 * 24 * 60 * 60 * 1000; // 10d
+  // get token expiary
+  const { iat: accessTokenIat, exp: accessTokenExp } = jwt.decode(accessToken);
+  const { iat: refreshTokenIat, exp: refreshTokenExp } =
+    jwt.decode(refreshToken);
+
+  // convert from seconds to milliseconds
+  const accessTokenExpiaryInMilliseconds =
+    (accessTokenExp - accessTokenIat) * 1000;
+  const refreshTokenExpiaryInMilliseconds =
+    (refreshTokenExp - refreshTokenIat) * 1000;
+
   return res
     .status(200)
-    .cookie("accessToken", accessToken, {...COOKIE_OPTIONS, maxAge: accessTokenExpiaryInMilliseconds})
-    .cookie("refreshToken", refreshToken, {...COOKIE_OPTIONS, maxAge: refreshTokenExpiaryInMilliseconds})
+    .cookie("accessToken", accessToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: accessTokenExpiaryInMilliseconds,
+    })
+    .cookie("refreshToken", refreshToken, {
+      ...COOKIE_OPTIONS,
+      maxAge: refreshTokenExpiaryInMilliseconds,
+    })
     .json(
       new ApiResponse(
         200,
@@ -316,8 +332,8 @@ const updateCoverImage = asyncHandler(async (req, res) => {
   if (!localPath) {
     throw new ApiError(400, "UPDATE ERROR:: Image file required");
   }
-  
-  if(!fileMimetype?.startsWith("image/")) {
+
+  if (!fileMimetype?.startsWith("image/")) {
     deleteTempFilesOnError([localPath]);
     throw new ApiError(400, "UPDATE ERROR:: Invalid image file type");
   }
@@ -500,16 +516,20 @@ const getSubscriptionList = asyncHandler(async (req, res) => {});
 const setSubscriptionList = asyncHandler(async (req, res) => {});
 
 // RE-ESTABLISH SESSION ACCESS TOKEN IF REFRESH TOKEN AVAILABLE
-const refreshAccessSession = asyncHandler(async (req, res) => {
+const refreshAccessToken = asyncHandler(async (req, res) => {
   // get incoming token
   const incomingRefreshToken =
-    req.cookies.refreshToken || req.body.refreshToken;
+    req.cookies.refreshToken ||
+    req.body.refreshToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+
+  // console.log("refreshToken ", incomingRefreshToken);
 
   // validate incoming token
   if (!incomingRefreshToken) {
     throw new ApiError(
       401,
-      "REFRESH TOKEN ERROR:: Unauthorized request: Token expired"
+      "REFRESH TOKEN ERROR:: Unauthorized request: Token missing"
     );
   }
 
@@ -521,7 +541,7 @@ const refreshAccessSession = asyncHandler(async (req, res) => {
     );
 
     // find user in database with the given token
-    const user = await User.findById(decodedToken._id);
+    const user = await User.findById(decodedToken?._id);
 
     // when user not found
     if (!user) {
@@ -550,7 +570,35 @@ const refreshAccessSession = asyncHandler(async (req, res) => {
         )
       );
   } catch (error) {
-    throw new ApiError(401, `REFRESH TOKEN ERROR:: ${error?.message}`);
+    throw new ApiError(401, `REFRESH ACCESS TOKEN ERROR:: ${error?.message}`);
+  }
+});
+
+// VALIDATE ACCESS TOKEN
+const validateAccessToken = asyncHandler(async (req, res) => {
+  const token =
+    req.cookies?.accessToken ||
+    req.header("Authorization")?.replace("Bearer ", "");
+
+  // console.log("accessToken ", token);
+
+  //verify token
+  if (!token) {
+    throw new ApiError(401, "Unauthorized request: Token missing");
+  }
+
+  try {
+    // decode token
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const user = await User.findById(decodedToken._id);
+
+    if (!user) {
+      throw new ApiError(401, "Invalid access token");
+    }
+
+    return res.status(200).json(new ApiResponse(200, "Access token is valid"));
+  } catch (error) {
+    throw new ApiError(401, `VALIDATE ACCESS TOKEN ERROR:: ${error?.message}`);
   }
 });
 
@@ -568,5 +616,6 @@ export {
   updateCoverImage,
   getChannelInfoAndStats,
   getWatchHistory,
-  refreshAccessSession,
+  refreshAccessToken,
+  validateAccessToken,
 };
