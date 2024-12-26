@@ -519,9 +519,7 @@ const setSubscriptionList = asyncHandler(async (req, res) => {});
 const refreshAccessToken = asyncHandler(async (req, res) => {
   // get incoming token
   const incomingRefreshToken =
-    req.cookies.refreshToken ||
-    req.body.refreshToken ||
-    req.header("Authorization")?.replace("Bearer ", "");
+    req.cookies.refreshToken || req.body.refreshToken;
 
   // console.log("refreshToken ", incomingRefreshToken);
 
@@ -576,20 +574,20 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 // VALIDATE ACCESS TOKEN
 const validateAccessToken = asyncHandler(async (req, res) => {
-  const token =
+  const incomingAccessToken =
     req.cookies?.accessToken ||
     req.header("Authorization")?.replace("Bearer ", "");
 
   // console.log("accessToken ", token);
 
   //verify token
-  if (!token) {
+  if (!incomingAccessToken) {
     throw new ApiError(401, "Unauthorized request: Token missing");
   }
 
   try {
     // decode token
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(incomingAccessToken, process.env.ACCESS_TOKEN_SECRET);
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
