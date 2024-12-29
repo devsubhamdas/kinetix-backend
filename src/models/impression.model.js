@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose";
 
-const likeSchema = new Schema(
+const impressionSchema = new Schema(
   {
     impression: {
       type: Boolean,
@@ -24,6 +24,6 @@ const likeSchema = new Schema(
   { timestamps: true }
 );
 
-const Like = mongoose.model("Like", likeSchema);
+const Impression = mongoose.model("Impression", impressionSchema);
 
-export default Like;
+export default Impression;
