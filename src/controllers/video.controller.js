@@ -74,7 +74,7 @@ const uploadVideo = asyncHandler(async (req, res) => {
     owner: req.user?._id,
     title: videoTitle,
     description: videoDesc?.trim() || null,
-    genre: videoGenre?.toLowerCase() || "video",
+    genre: videoGenre?.toLowerCase() || null,
     tags: videoTags?.trim() ? parseTags(videoTags) : [],
     videoPublicId: videoFile.public_id,
     thumbnailPublicId: videoThumbnail?.public_id || null,
