@@ -6,18 +6,18 @@ const impressionSchema = new Schema(
       type: Boolean,
       required: true,
     },
-    madeBy: {
+    owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    impressionRefType: {
+    refType: {
       type: String,
       enum: ["Video", "CommunityPost", "Comment"],
       required: true,
     },
-    impressionMadeTo: {
+    refId: {
       type: Schema.Types.ObjectId,
-      refPath: "impressionRefType",
+      refPath: "refType",
       required: true,
     },
   },

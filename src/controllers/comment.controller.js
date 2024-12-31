@@ -3,6 +3,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
+import Video from "../models/video.model.js";
+import CommunityPost from "../models/CommunityPost.model.js";
 
 // ADD COMMENT
 const addComment = asyncHandler(async (req, res) => {
@@ -19,6 +21,35 @@ const addComment = asyncHandler(async (req, res) => {
     );
   }
 
+  // validate reference type
+  const refTypes = ["Video", "CommunityPost", "Comment"];
+  if(!refTypes.includes(refType)) {
+    throw new ApiError(404, "COMMENT ADD ERROR:: Invalid refType");
+  }
+
+  // validate reference id
+  if(refTypes === "Video"){
+    const video = await Video.findById(refId);
+    if(!video) {
+      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid video refId");
+    }
+  }
+
+  if(refTypes === "CommunityPost"){
+    const communityPost = await CommunityPost.findById(refId);
+    if(!communityPost) {
+      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid community-post refId");
+    }
+  }
+
+  if(refTypes === "Comment"){
+    const comment = await Comment.findById(refId);
+    if(!comment) {
+      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid comment refId");
+    }
+  }
+
+  // create comment
   const newComment = await Comment.create({
     content,
     owner: req.user?._id,

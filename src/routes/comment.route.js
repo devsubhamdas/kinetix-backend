@@ -13,7 +13,7 @@ router.route("/update/:id").put(verifyJWT, updateComment);
 // delete comment
 router.route("/delete/:id").delete(verifyJWT, deleteComment);
 
-// get all comments
-router.route("/get-all/:refId").get(getAllCommentsByRefId);
+// get all comments by reference id
+router.route("/all/:refId").get(getAllCommentsByRefId);
 
 export default router;
