@@ -4,7 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
 import Video from "../models/video.model.js";
-import CommunityPost from "../models/CommunityPost.model.js";
+import CommunityPost from "../models/communityPost.model.js";
 
 // ADD COMMENT
 const addComment = asyncHandler(async (req, res) => {
