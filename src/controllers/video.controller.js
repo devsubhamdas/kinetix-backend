@@ -360,6 +360,11 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
       },
     },
     {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
       $project: {
         thumbnail: 1,
         title: 1,
@@ -454,7 +459,13 @@ const getVideosByRecommendation = asyncHandler(async (_, res) => {
           $first: "$owner",
         },
       },
-    },{
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
       $project: {
         thumbnail: 1,
         title: 1,
@@ -463,8 +474,8 @@ const getVideosByRecommendation = asyncHandler(async (_, res) => {
         createdAt: 1,
         "owner.username": 1,
         "owner.avatar": 1,
-      }
-    }
+      },
+    },
   ]);
   return res
     .status(200)
