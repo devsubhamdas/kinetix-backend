@@ -23,28 +23,31 @@ const addComment = asyncHandler(async (req, res) => {
 
   // validate reference type
   const refTypes = ["Video", "CommunityPost", "Comment"];
-  if(!refTypes.includes(refType)) {
+  if (!refTypes.includes(refType)) {
     throw new ApiError(404, "COMMENT ADD ERROR:: Invalid refType");
   }
 
   // validate reference id
-  if(refTypes === "Video"){
+  if (refTypes === "Video") {
     const video = await Video.findById(refId);
-    if(!video) {
+    if (!video) {
       throw new ApiError(404, "COMMENT ADD ERROR:: Invalid video refId");
     }
   }
 
-  if(refTypes === "CommunityPost"){
+  if (refTypes === "CommunityPost") {
     const communityPost = await CommunityPost.findById(refId);
-    if(!communityPost) {
-      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid community-post refId");
+    if (!communityPost) {
+      throw new ApiError(
+        404,
+        "COMMENT ADD ERROR:: Invalid community-post refId"
+      );
     }
   }
 
-  if(refTypes === "Comment"){
+  if (refTypes === "Comment") {
     const comment = await Comment.findById(refId);
-    if(!comment) {
+    if (!comment) {
       throw new ApiError(404, "COMMENT ADD ERROR:: Invalid comment refId");
     }
   }
@@ -232,7 +235,42 @@ const getAllCommentsByRefId = asyncHandler(async (req, res) => {
     throw new ApiError(400, "GET ALL COMMENTS ERROR:: RefId is required");
   }
 
-  const comments = await Comment.find({ refId });
+  const comments = await Comment.aggregate([
+    {
+      $match: {
+        refId: new mongoose.Types.ObjectId(String(refId)),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+      },
+    },
+    {
+      $addFields: {
+        owner: {
+          $first: "$owner",
+        },
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
+      $project: {
+        content: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        "owner.username": 1,
+        "owner.avatar": 1,
+      },
+    },
+  ]);
 
   return res
     .status(200)
