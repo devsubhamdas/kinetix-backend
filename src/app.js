@@ -30,6 +30,7 @@ import watchRouter from "./routes/watch.route.js";
 import postRouter from "./routes/post.route.js";
 import commentRouter from "./routes/comment.route.js";
 import recommendRouter from "./routes/recommend.route.js";
+import subscriptionRouter from "./routes/subscription.route.js";
 
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
@@ -38,6 +39,7 @@ app.use("/api/v1/watch", watchRouter);
 app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/recommend", recommendRouter);
+app.use("/api/v1/subscription", subscriptionRouter);
 
 // Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
