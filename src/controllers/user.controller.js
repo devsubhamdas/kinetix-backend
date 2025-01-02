@@ -368,9 +368,10 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, user, "Cover image updated successfully"));
 });
 
+// GET CHANNEL INFO AND STATS
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  console.log("sub ", req.body.subscriber);
+  const subscriber = req.query.subscriber || undefined;
 
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username is required");
@@ -409,7 +410,7 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
         isSubscribed: {
           $cond: {
             if: {
-              $in: [{$toObjectId: req.body.subscriber}, "$subscribers.subscriber"]
+              $in: [{ $toObjectId: subscriber }, "$subscribers.subscriber"],
             },
             then: true,
             else: false,
@@ -588,7 +589,10 @@ const validateAccessToken = asyncHandler(async (req, res) => {
 
   try {
     // decode token
-    const decodedToken = jwt.verify(incomingAccessToken, process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(
+      incomingAccessToken,
+      process.env.ACCESS_TOKEN_SECRET
+    );
     const user = await User.findById(decodedToken._id);
 
     if (!user) {
