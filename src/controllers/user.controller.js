@@ -370,6 +370,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
+  console.log("sub ", req.body.subscriber);
 
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username is required");
@@ -408,7 +409,7 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
         isSubscribed: {
           $cond: {
             if: {
-              $in: [req.user?._id, "$subscribers.subscriber"],
+              $in: [{$toObjectId: req.body.subscriber}, "$subscribers.subscriber"]
             },
             then: true,
             else: false,
