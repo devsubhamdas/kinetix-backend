@@ -385,6 +385,7 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
+  const reqUid = req.query.reqUid || undefined;
 
   if (!username || !id) {
     throw new ApiError(400, "GET VIDEO ERROR:: Username and id required");
@@ -405,9 +406,85 @@ const getVideoById = asyncHandler(async (req, res) => {
       },
     },
     {
+      $lookup: {
+        from: "impressions",
+        localField: "_id",
+        foreignField: "refId",
+        as: "impressions",
+      },
+    },
+    {
       $addFields: {
         owner: {
           $first: "$owner",
+        },
+        likesCount: {
+          $size: {
+            $filter: {
+              input: "$impressions",
+              as: "impression",
+              cond: { $eq: ["$$impression.isLiked", true] },
+            },
+          },
+        },
+        dislikesCount: {
+          $size: {
+            $filter: {
+              input: "$impressions",
+              as: "impression",
+              cond: { $eq: ["$$impression.isLiked", false] },
+            },
+          },
+        },
+        hasLiked: {
+          $cond: {
+            if: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: "$impressions",
+                      as: "impression",
+                      cond: {
+                        $and: [
+                          { $eq: ["$$impression.isLiked", true] },
+                          { $eq: ["$$impression.owner", {$toObjectId: reqUid}] },
+                        ],
+                      },
+                    },
+                  },
+                },
+                0,
+              ],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        hasDisliked: {
+          $cond: {
+            if: {
+              $gt: [
+                {
+                  $size: {
+                    $filter: {
+                      input: "$impressions",
+                      as: "impression",
+                      cond: {
+                        $and: [
+                          { $eq: ["$$impression.isLiked", false] },
+                          { $eq: ["$$impression.owner", {$toObjectId: reqUid}] },
+                        ],
+                      },
+                    },
+                  },
+                },
+                0,
+              ],
+            },
+            then: true,
+            else: false,
+          },
         },
       },
     },
@@ -429,6 +506,10 @@ const getVideoById = asyncHandler(async (req, res) => {
         createdAt: 1,
         "owner.username": 1,
         "owner.avatar": 1,
+        likesCount: 1,
+        dislikesCount: 1,
+        hasLiked: 1,
+        hasDisliked: 1,
       },
     },
   ]);
