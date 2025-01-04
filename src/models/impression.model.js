@@ -2,7 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const impressionSchema = new Schema(
   {
-    impression: {
+    isLiked: {
       type: Boolean,
       required: true,
     },
