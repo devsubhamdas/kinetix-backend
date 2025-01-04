@@ -80,7 +80,7 @@ const unsubscribeChannel = asyncHandler(async (req, res) => {
   );
   if (!isSubscriptionDeleted) {
     throw new ApiError(
-      400,
+      500,
       "UNSUBSCRIBE CHANNEL ERROR:: Something went wrong while deleting subscription from database"
     );
   }
