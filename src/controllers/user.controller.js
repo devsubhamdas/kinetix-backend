@@ -371,7 +371,14 @@ const updateCoverImage = asyncHandler(async (req, res) => {
 // GET CHANNEL INFO AND STATS
 const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  const subscriber = req.query.subscriber || undefined;
+
+  const token =
+      req.cookies?.accessToken ||
+      req.header("Authorization").split(" ")[1];
+  
+    const { _id: subscriber } = token
+      ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+      : { _id: undefined };
 
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username is required");
