@@ -10,6 +10,7 @@ import {
   deleteFromCloudinary,
 } from "../utils/cloudinary.js";
 import { deleteTempFilesOnError } from "../utils/helper.js";
+import jwt from "jsonwebtoken";
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -385,7 +386,14 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
-  const reqUid = req.query.reqUid || undefined;
+
+  const token =
+    req.cookies?.accessToken ||
+    req.header("Authorization").split(" ")[1];
+
+  const { _id: reqUid } = token
+    ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+    : { _id: undefined };
 
   if (!username || !id) {
     throw new ApiError(400, "GET VIDEO ERROR:: Username and id required");
@@ -448,7 +456,12 @@ const getVideoById = asyncHandler(async (req, res) => {
                       cond: {
                         $and: [
                           { $eq: ["$$impression.isLiked", true] },
-                          { $eq: ["$$impression.owner", {$toObjectId: reqUid}] },
+                          {
+                            $eq: [
+                              "$$impression.owner",
+                              { $toObjectId: reqUid },
+                            ],
+                          },
                         ],
                       },
                     },
@@ -473,7 +486,12 @@ const getVideoById = asyncHandler(async (req, res) => {
                       cond: {
                         $and: [
                           { $eq: ["$$impression.isLiked", false] },
-                          { $eq: ["$$impression.owner", {$toObjectId: reqUid}] },
+                          {
+                            $eq: [
+                              "$$impression.owner",
+                              { $toObjectId: reqUid },
+                            ],
+                          },
                         ],
                       },
                     },
