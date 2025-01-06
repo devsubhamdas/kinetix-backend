@@ -373,12 +373,11 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
   const { username } = req.params;
 
   const token =
-      req.cookies?.accessToken ||
-      req.header("Authorization").split(" ")[1];
-  
-    const { _id: subscriber } = token
-      ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-      : { _id: undefined };
+    req.cookies?.accessToken || req.header("Authorization")?.split(" ")[1];
+
+  const { _id: subscriber } = token
+    ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
+    : { _id: undefined };
 
   if (!username?.trim()) {
     throw new ApiError(400, "CHANNEL ERROR:: Username is required");
@@ -388,6 +387,14 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
     {
       $match: {
         username: username?.trim().toLowerCase(),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "_id",
+        foreignField: "owner",
+        as: "videos",
       },
     },
     {
@@ -423,6 +430,9 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
             else: false,
           },
         },
+        videosCount: {
+          $size: "$videos"
+        }
       },
     },
     {
@@ -437,6 +447,7 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
         avatarPublicId: 1,
         coverImage: 1,
         coverImagePublicId: 1,
+        videosCount: 1,
       },
     },
   ]);
