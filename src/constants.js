@@ -1,4 +1,4 @@
-export const DB_NAME = "video_streaming_project";
+export const DB_NAME = "dev_db_kinetix";
 
 export const COOKIE_OPTIONS = {
   httpOnly: true, // modifiable only from server
