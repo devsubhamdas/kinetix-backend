@@ -4,6 +4,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 const app = express();
+app.set("trust proxy", 1); //REQUIRED for HTTPS on EB
 
 // MIDDLEWARE CONFIGURATION
 const allowedOrigins = [

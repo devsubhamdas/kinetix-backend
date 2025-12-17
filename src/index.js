@@ -2,7 +2,8 @@ import "dotenv/config";
 import connectDB from "./db/index.js";
 import app from "./app.js";
 
-const PORT = process.env.ENV === "development" ? 3000 : process.env.PORT;
+const PORT =
+  process.env.NODE_ENV === "development" ? 3000 : Number(process.env.PORT);
 connectDB()
   .then(() => {
     app.on("error", (err) => {
