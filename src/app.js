@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -5,7 +6,13 @@ import cookieParser from "cookie-parser";
 const app = express();
 
 // MIDDLEWARE CONFIGURATION
-const allowedOrigins = [process.env.CORS_ORIGIN_1, process.env.CORS_ORIGIN_2, "http://example.com"];
+const allowedOrigins = [
+  process.env.CORS_ORIGIN_1,
+  process.env.CORS_ORIGIN_2,
+  process.env.CORS_ORIGIN_0,
+  process.env.CORS_ORIGIN_0_A,
+  "http://example.com",
+];
 app.use(
   cors({
     origin: function (origin, callback) {
