@@ -41,6 +41,13 @@ import recommendRouter from "./routes/recommend.route.js";
 import subscriptionRouter from "./routes/subscription.route.js";
 import impressionRouter from "./routes/impression.route.js";
 
+// health check
+app.get("/", (req, res) => {
+  return res.status(200).json({
+    success: "ok",
+  });
+});
+
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/channel", channelRouter);
