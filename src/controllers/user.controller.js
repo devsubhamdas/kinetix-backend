@@ -101,9 +101,9 @@ const registerUser = asyncHandler(async (req, res) => {
     email: email?.toLowerCase(),
     password,
     fullName,
-    avatar: avatar.url,
+    avatar: avatar.secure_url,
     avatarPublicId: avatar.public_id,
-    coverImage: coverImage?.url || null,
+    coverImage: coverImage?.secure_url || null,
     coverImagePublicId: coverImage?.public_id || null,
     contentGenre: contentGenre?.toLowerCase() || null,
     tags: tags?.trim() ? parseTags(tags) : [],
@@ -309,7 +309,12 @@ const updateAvatar = asyncHandler(async (req, res) => {
 
   const user = await User.findByIdAndUpdate(
     req.user?._id,
-    { $set: { avatar: newAvatar.url, avatarPublicId: newAvatar.public_id } },
+    {
+      $set: {
+        avatar: newAvatar.secure_url,
+        avatarPublicId: newAvatar.public_id,
+      },
+    },
     { new: true }
   ).select("-password -refreshToken");
 
@@ -356,7 +361,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        coverImage: newCoverImage.url,
+        coverImage: newCoverImage.secure_url,
         coverImagePublicId: newCoverImage.public_id,
       },
     },
@@ -431,8 +436,8 @@ const getChannelInfoAndStats = asyncHandler(async (req, res) => {
           },
         },
         videosCount: {
-          $size: "$videos"
-        }
+          $size: "$videos",
+        },
       },
     },
     {

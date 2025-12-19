@@ -70,8 +70,8 @@ const uploadVideo = asyncHandler(async (req, res) => {
   }
 
   const video = await Video.create({
-    videoFile: videoFile.url,
-    thumbnail: videoThumbnail?.url || null,
+    videoFile: videoFile.secure_url,
+    thumbnail: videoThumbnail?.secure_url || null,
     owner: req.user?._id,
     title: videoTitle,
     description: videoDesc?.trim() || null,
@@ -298,7 +298,10 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
   // update thumbnail on mongodb
   const newVideo = await Video.findByIdAndUpdate(
     id,
-    { thumbnail: newThumbnail.url, thumbnailPublicId: newThumbnail.public_id },
+    {
+      thumbnail: newThumbnail.secure_url,
+      thumbnailPublicId: newThumbnail.public_id,
+    },
     { new: true }
   );
 
@@ -388,8 +391,7 @@ const getVideoById = asyncHandler(async (req, res) => {
   const { username, id } = req.params;
 
   const token =
-    req.cookies?.accessToken ||
-    req.header("Authorization").split(" ")[1];
+    req.cookies?.accessToken || req.header("Authorization").split(" ")[1];
 
   const { _id: reqUid } = token
     ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)

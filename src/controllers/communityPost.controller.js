@@ -59,7 +59,7 @@ const createPost = asyncHandler(async (req, res) => {
     owner: req.user?._id,
     content,
     tags: tags?.trim() ? parseTags(tags) : [],
-    attachment: attachment?.url || null,
+    attachment: attachment?.secure_url || null,
     attachmentPublicId: attachment?.public_id || null,
   });
 
@@ -243,7 +243,7 @@ const updatePost = asyncHandler(async (req, res) => {
       $set: {
         content,
         tags: tags && parseTags(tags),
-        attachment: newAttachment?.url,
+        attachment: newAttachment?.secure_url,
         attachmentPublicId: newAttachment?.public_id,
       },
     },
