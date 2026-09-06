@@ -229,7 +229,7 @@ Kinetix is an ongoing video streaming application project.
 
 The frontend is part of the Kinetix video streaming platform and works alongside its associated backend repository.
 
-**Backend:** [Kinetix Frontend](https://github.com/devsubhamdas/kinetix-frontend)
+**Frontend:** [Kinetix Frontend](https://github.com/devsubhamdas/kinetix-frontend)
 
 ## 📄 License
 
