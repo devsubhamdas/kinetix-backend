@@ -225,6 +225,12 @@ Kinetix is an ongoing video streaming application project.
 
 - Real-time functionality using Socket.IO
 
+## 🔗 Associated Repository
+
+The frontend is part of the Kinetix video streaming platform and works alongside its associated backend repository.
+
+**Backend:** [Kinetix Frontend](https://github.com/devsubhamdas/kinetix-frontend)
+
 ## 📄 License
 
 This project is currently released under the **MIT License**.
