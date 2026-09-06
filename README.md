@@ -4,6 +4,21 @@ Kinetix is the backend for a video streaming application built with **Node.js, E
 
 The project provides the server-side foundation for user authentication, video management, media storage, and API communication for a video streaming platform.
 
+## 🛠️ Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/devsubhamdas/kinetix-backend.git
+cd kinetix-backend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
 ## 🚀 Tech Stack
 
 - **Node.js** — JavaScript runtime
@@ -98,21 +113,6 @@ CORS_ORIGIN_2=http://192.168.1.100:5173
 The IP address should be changed according to the current local network.
 
 > This setup is intended primarily for local/LAN development and testing. Production deployments should use the appropriate deployed frontend origin.
-
-## 🛠️ Installation
-
-Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <project-directory>
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
 
 Create a `.env` file and configure the required environment variables.
 
