@@ -8,13 +8,17 @@ const app = express();
 app.set("trust proxy", 1); //REQUIRED for HTTPS on EB
 
 // MIDDLEWARE CONFIGURATION
-const allowedOrigins = [
-  process.env.CORS_ORIGIN_1,
-  process.env.CORS_ORIGIN_2,
-  process.env.CORS_ORIGIN_0,
-  process.env.CORS_ORIGIN_0_A,
-  "http://example.com",
-];
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((origin) => origin.trim().replace(/\/+$/, "")) // trim spaces and trailing slashes
+  .filter(Boolean); // drop empty entries;
+
+if (allowedOrigins.length === 0) {
+  console.warn(
+    "ALLOWED_ORIGINS is empty: all browser cross-origin requests will be rejected"
+  );
+}
+
 app.use(
   cors({
     origin: function (origin, callback) {
