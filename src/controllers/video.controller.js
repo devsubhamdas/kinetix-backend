@@ -352,37 +352,19 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
   const pageSize = Math.min(limit || 10, 50);
 
   const docs = await Video.aggregate([
-    {
-      $match: match,
-    },
-    {
-      $sort: {
-        _id: -1,
-      },
-    },
-    {
-      $limit: pageSize + 1,
-    },
+    { $match: { ...match, owner: channel._id } }, // filter by owner up front (uses an index)
+    { $sort: { _id: -1 } },
+    { $limit: pageSize + 1 },
     {
       $lookup: {
         from: "users",
         localField: "owner",
         foreignField: "_id",
         as: "owner",
+        pipeline: [{ $project: { username: 1, avatar: 1 } }], // only fetch needed fields
       },
     },
-    {
-      $addFields: {
-        owner: {
-          $first: "$owner",
-        },
-      },
-    },
-    {
-      $match: {
-        "owner.username": channel.username,
-      },
-    },
+    { $addFields: { owner: { $first: "$owner" } } },
     {
       $project: {
         thumbnail: 1,
@@ -390,8 +372,7 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
         duration: 1,
         views: 1,
         createdAt: 1,
-        "owner.username": 1,
-        "owner.avatar": 1,
+        owner: 1,
       },
     },
   ]);
