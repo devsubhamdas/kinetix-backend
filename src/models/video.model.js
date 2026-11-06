@@ -33,7 +33,7 @@ const genres = [
   "movie/tv show recaps",
   "compilation videos",
   "news reports",
-]
+];
 
 const videoSchema = new Schema(
   {
@@ -83,6 +83,8 @@ const videoSchema = new Schema(
   },
   { timestamps: true }
 );
+
+videoSchema.index({ isPublished: 1, createdAt: -1, _id: -1 });
 
 videoSchema.plugin(mongooseAggregatePaginate);
 

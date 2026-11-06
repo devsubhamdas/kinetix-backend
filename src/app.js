@@ -86,13 +86,7 @@ import commentRouter from "./routes/comment.route.js";
 import recommendRouter from "./routes/recommend.route.js";
 import subscriptionRouter from "./routes/subscription.route.js";
 import impressionRouter from "./routes/impression.route.js";
-
-// health check
-app.get("/", (req, res) => {
-  return res.status(200).json({
-    success: "ok",
-  });
-});
+import searchRouter from "./routes/search.route.js";
 
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
@@ -103,6 +97,7 @@ app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/recommend", recommendRouter);
 app.use("/api/v1/subscription", subscriptionRouter);
 app.use("/api/v1/impression", impressionRouter);
+app.use("/api/v1/search", searchRouter);
 
 // Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";

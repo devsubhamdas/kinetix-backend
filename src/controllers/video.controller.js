@@ -4,7 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import Video from "../models/video.model.js";
-import { parseTags } from "../utils/helper.js";
+import { fromUrlSafe, parseTags, toUrlSafe } from "../utils/helper.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
@@ -585,6 +585,103 @@ const getVideosByRecommendation = asyncHandler(async (_, res) => {
     );
 });
 
+// GET VIDEOS BY SEARCH-TERM
+const getVideosBySearchTerm = asyncHandler(async (req, res) => {
+  const { q: term, cursor: rawCursor, limit } = req.query;
+  const cursor = rawCursor ? fromUrlSafe(rawCursor.trim()) : undefined;
+
+  if (!term) {
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(200, [], "Videos by search-term fetched successfully")
+      );
+  }
+
+  const pageSize = Math.min(Number(limit) || 10, 50);
+
+  const docs = await Video.aggregate([
+    {
+      $search: {
+        index: "video_search",
+        compound: {
+          should: [
+            {
+              text: {
+                query: term,
+                path: "title",
+                fuzzy: { maxEdits: 2, prefixLength: 1 },
+                score: { boost: { value: 3 } },
+              },
+            },
+            {
+              text: {
+                query: term,
+                path: "tags",
+                fuzzy: { maxEdits: 2, prefixLength: 1 },
+                score: { boost: { value: 2 } },
+              },
+            },
+            {
+              text: {
+                query: term,
+                path: "genre",
+                fuzzy: { maxEdits: 2, prefixLength: 1 },
+                score: { boost: { value: 1.5 } },
+              },
+            },
+            {
+              text: {
+                query: term,
+                path: "description",
+                fuzzy: { maxEdits: 2, prefixLength: 1 },
+              },
+            },
+          ],
+          minimumShouldMatch: 1,
+          filter: [{ equals: { path: "isPublished", value: true } }],
+        },
+        ...(cursor && { searchAfter: cursor }), // resume after the last item of the previous batch
+      },
+    },
+    { $limit: pageSize + 1 }, // fetch one extra to know if there is a next page
+    {
+      $addFields: {
+        score: { $meta: "searchScore" },
+        paginationToken: { $meta: "searchSequenceToken" },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [{ $project: { username: 1, avatar: 1 } }],
+      },
+    },
+    { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+  ]);
+
+  const hasNextPage = docs.length > pageSize;
+  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
+  const nextCursor = hasNextPage
+    ? toUrlSafe(videos[videos.length - 1].paginationToken)
+    : null;
+
+  const data = { videos, meta: { hasNextPage, nextCursor } };
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, data, "Videos by search-term fetched successfully")
+    );
+});
+
 // TOGGLE VIDEO STATUS
 const toggleVideoStatus = asyncHandler(async (req, res) => {});
 
@@ -596,4 +693,5 @@ export {
   getAllVideosByChannelName,
   getVideoById,
   getVideosByRecommendation,
+  getVideosBySearchTerm,
 };
