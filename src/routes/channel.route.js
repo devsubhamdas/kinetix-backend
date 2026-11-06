@@ -7,13 +7,13 @@ import {
   deleteVideo,
   updateVideoDetails,
   updateVideoThumbnail,
-  getAllVideosByChannelName,
+  getVideosByChannelName,
 } from "../controllers/video.controller.js";
 import {
   createPost,
   deletePost,
   updatePost,
-  getAllPostsByChannelName
+  getAllPostsByChannelName,
 } from "../controllers/communityPost.controller.js";
 
 const router = Router();
@@ -70,7 +70,7 @@ router
 // delete playlist
 
 // get all videos by channel
-router.route("/:username/videos").get(getAllVideosByChannelName);
+router.route("/:username/videos").get(getVideosByChannelName);
 
 // get all community post by channel
 router.route("/:username/posts").get(getAllPostsByChannelName);

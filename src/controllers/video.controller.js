@@ -333,8 +333,9 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
 });
 
 // GET VIDEOS BY CHANNEL NAME
-const getAllVideosByChannelName = asyncHandler(async (req, res) => {
+const getVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
+  const { limit = 10, cursor } = req.query;
 
   const channel = await User.findOne({ username });
 
@@ -342,7 +343,26 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
     throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
   }
 
-  const videos = await Video.aggregate([
+  if (cursor && !mongoose.isValidObjectId(cursor)) {
+    throw new ApiError(400, "GET BY CHANNEL NAME ERROR:: Invalid cursor");
+  }
+
+  const match = { isPublished: true };
+  if (cursor) match._id = { $lt: new mongoose.Types.ObjectId(String(cursor)) };
+  const pageSize = Math.min(limit || 10, 50);
+
+  const docs = await Video.aggregate([
+    {
+      $match: match,
+    },
+    {
+      $sort: {
+        _id: -1,
+      },
+    },
+    {
+      $limit: pageSize + 1,
+    },
     {
       $lookup: {
         from: "users",
@@ -364,11 +384,6 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
       },
     },
     {
-      $sort: {
-        createdAt: -1,
-      },
-    },
-    {
       $project: {
         thumbnail: 1,
         title: 1,
@@ -381,9 +396,20 @@ const getAllVideosByChannelName = asyncHandler(async (req, res) => {
     },
   ]);
 
+  const hasNextPage = docs.length > pageSize;
+  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
+  const nextCursor = hasNextPage ? videos[videos.length - 1]._id : null;
+  const data = {
+    videos,
+    hasNextPage,
+    nextCursor,
+  };
+
   return res
     .status(200)
-    .json(new ApiResponse(200, videos, "All videos fetched successfully"));
+    .json(
+      new ApiResponse(200, data, "Videos by channel name fetched successfully")
+    );
 });
 
 // GET VIDEO BY ID
@@ -544,8 +570,25 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 // GET VIDEO BY RECOMMENDATION
-const getVideosByRecommendation = asyncHandler(async (_, res) => {
-  const videos = await Video.aggregate([
+const getVideosByRecommendation = asyncHandler(async (req, res) => {
+  const { limit = 10, cursor } = req.query;
+  const pageSize = Math.min(limit || 10, 50);
+
+  if (cursor && !mongoose.isValidObjectId(cursor)) {
+    throw new ApiError(400, "GET VIDEOS BY SEARCH-TERM ERROR:: Invalid cursor");
+  }
+
+  const match = { isPublished: true };
+  if (cursor) match._id = { $lt: new mongoose.Types.ObjectId(String(cursor)) };
+
+  const docs = await Video.aggregate([
+    { $match: match },
+    {
+      $sort: {
+        _id: -1,
+      },
+    },
+    { $limit: pageSize + 1 },
     {
       $lookup: {
         from: "users",
@@ -562,11 +605,6 @@ const getVideosByRecommendation = asyncHandler(async (_, res) => {
       },
     },
     {
-      $sort: {
-        createdAt: -1,
-      },
-    },
-    {
       $project: {
         thumbnail: 1,
         title: 1,
@@ -578,16 +616,23 @@ const getVideosByRecommendation = asyncHandler(async (_, res) => {
       },
     },
   ]);
+
+  const hasNextPage = docs.length > pageSize;
+  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
+  const nextCursor = hasNextPage ? videos[videos.length - 1]._id : null;
+
+  const data = { videos, hasNextPage, nextCursor };
+
   return res
     .status(200)
     .json(
-      new ApiResponse(200, videos, "Recommended videos fetched successfully")
+      new ApiResponse(200, data, "Recommended videos fetched successfully")
     );
 });
 
 // GET VIDEOS BY SEARCH-TERM
 const getVideosBySearchTerm = asyncHandler(async (req, res) => {
-  const { q: term, cursor: rawCursor, limit } = req.query;
+  const { q: term, cursor: rawCursor, limit = 10 } = req.query;
   const cursor = rawCursor ? fromUrlSafe(rawCursor.trim()) : undefined;
 
   if (!term) {
@@ -644,6 +689,11 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
         ...(cursor && { searchAfter: cursor }), // resume after the last item of the previous batch
       },
     },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
     { $limit: pageSize + 1 }, // fetch one extra to know if there is a next page
     {
       $addFields: {
@@ -661,11 +711,6 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
       },
     },
     { $unwind: { path: "$owner", preserveNullAndEmptyArrays: true } },
-    {
-      $sort: {
-        createdAt: -1,
-      },
-    },
   ]);
 
   const hasNextPage = docs.length > pageSize;
@@ -690,7 +735,7 @@ export {
   deleteVideo,
   updateVideoDetails,
   updateVideoThumbnail,
-  getAllVideosByChannelName,
+  getVideosByChannelName,
   getVideoById,
   getVideosByRecommendation,
   getVideosBySearchTerm,
