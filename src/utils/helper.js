@@ -27,7 +27,7 @@ const base64urlToBase64 = (str) => {
 };
 
 const base64urlToObjectId = (str) => {
-  return Buffer.from(str, "base64").toString("hex");
+  return Buffer.from(str, "base64url").toString("hex");
 };
 const objectIdToBase64url = (str) => {
   return Buffer.from(str, "hex").toString("base64url");
