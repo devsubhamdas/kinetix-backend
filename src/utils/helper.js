@@ -9,13 +9,13 @@ const parseTags = (tags) => {
 };
 
 // helpers for parse url cursor pagination token
-const toUrlSafe = (token) =>
+const base64ToUrlSafe = (token) =>
   token.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-const fromUrlSafe = (token) => {
+const urlSafeToBase64 = (token) => {
   let t = token.replace(/-/g, "+").replace(/_/g, "/");
   while (t.length % 4) t += "="; // restore padding
   return t;
 };
 
-export { deleteTempFilesOnError, parseTags, toUrlSafe, fromUrlSafe };
+export { deleteTempFilesOnError, parseTags, base64ToUrlSafe, urlSafeToBase64 };

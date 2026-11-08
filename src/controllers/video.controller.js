@@ -4,7 +4,11 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import Video from "../models/video.model.js";
-import { fromUrlSafe, parseTags, toUrlSafe } from "../utils/helper.js";
+import {
+  urlSafeToBase64,
+  parseTags,
+  base64ToUrlSafe,
+} from "../utils/helper.js";
 import {
   uploadOnCloudinary,
   deleteFromCloudinary,
@@ -614,7 +618,7 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {
 // GET VIDEOS BY SEARCH-TERM
 const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   const { q: term, cursor: rawCursor, limit = 10 } = req.query;
-  const cursor = rawCursor ? fromUrlSafe(rawCursor.trim()) : undefined;
+  const cursor = rawCursor ? urlSafeToBase64(rawCursor.trim()) : undefined;
 
   if (!term) {
     return res
@@ -697,7 +701,7 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   const hasNextPage = docs.length > pageSize;
   const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
   const nextCursor = hasNextPage
-    ? toUrlSafe(videos[videos.length - 1].paginationToken)
+    ? base64ToUrlSafe(videos[videos.length - 1].paginationToken)
     : null;
 
   const data = { videos, meta: { hasNextPage, nextCursor } };
