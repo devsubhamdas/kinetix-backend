@@ -5,9 +5,11 @@ import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import Video from "../models/video.model.js";
 import {
-  urlSafeToBase64,
+  base64urlToBase64,
   parseTags,
-  base64ToUrlSafe,
+  base64ToBase64url,
+  objectIdToBase64url,
+  base64urlToObjectId,
 } from "../utils/helper.js";
 import {
   uploadOnCloudinary,
@@ -339,7 +341,9 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
 // GET VIDEOS BY CHANNEL NAME
 const getVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  const { limit = 10, cursor } = req.query;
+  const { limit = 10, cursor: rawCursor } = req.query;
+  const pageSize = Math.min(limit || 10, 50);
+  const cursor = rawCursor ? base64urlToObjectId(rawCursor.trim()) : undefined;
 
   const channel = await User.findOne({ username });
 
@@ -353,7 +357,6 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
 
   const match = { isPublished: true };
   if (cursor) match._id = { $lt: new mongoose.Types.ObjectId(String(cursor)) };
-  const pageSize = Math.min(limit || 10, 50);
 
   const docs = await Video.aggregate([
     { $match: { ...match, owner: channel._id } }, // filter by owner up front (uses an index)
@@ -382,8 +385,11 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
   ]);
 
   const hasNextPage = docs.length > pageSize;
-  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
-  const nextCursor = hasNextPage ? videos[videos.length - 1]._id : null;
+  const videos = (hasNextPage ? docs.slice(0, pageSize) : docs).map((doc) => ({
+    ...doc,
+    encId: objectIdToBase64url(doc._id),
+  }));
+  const nextCursor = hasNextPage ? videos[videos.length - 1].encId : null;
   const data = {
     videos,
     hasNextPage,
@@ -556,8 +562,9 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 // GET VIDEO BY RECOMMENDATION
 const getVideosByRecommendation = asyncHandler(async (req, res) => {
-  const { limit = 10, cursor } = req.query;
+  const { limit = 10, cursor: rawCursor } = req.query;
   const pageSize = Math.min(limit || 10, 50);
+  const cursor = rawCursor ? base64urlToObjectId(rawCursor.trim()) : undefined;
 
   if (cursor && !mongoose.isValidObjectId(cursor)) {
     throw new ApiError(400, "GET VIDEOS BY SEARCH-TERM ERROR:: Invalid cursor");
@@ -580,6 +587,7 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {
         localField: "owner",
         foreignField: "_id",
         as: "owner",
+        pipeline: [{ $project: { username: 1, avatar: 1 } }],
       },
     },
     {
@@ -596,15 +604,17 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {
         duration: 1,
         views: 1,
         createdAt: 1,
-        "owner.username": 1,
-        "owner.avatar": 1,
+        owner: 1,
       },
     },
   ]);
 
   const hasNextPage = docs.length > pageSize;
-  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
-  const nextCursor = hasNextPage ? videos[videos.length - 1]._id : null;
+  const videos = (hasNextPage ? docs.slice(0, pageSize) : docs).map((doc) => ({
+    ...doc,
+    encId: objectIdToBase64url(doc._id),
+  }));
+  const nextCursor = hasNextPage ? videos[videos.length - 1].encId : null;
 
   const data = { videos, hasNextPage, nextCursor };
 
@@ -618,7 +628,7 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {
 // GET VIDEOS BY SEARCH-TERM
 const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   const { q: term, cursor: rawCursor, limit = 10 } = req.query;
-  const cursor = rawCursor ? urlSafeToBase64(rawCursor.trim()) : undefined;
+  const cursor = rawCursor ? base64urlToBase64(rawCursor.trim()) : undefined;
 
   if (!term) {
     return res
@@ -677,7 +687,7 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
     {
       $addFields: {
         score: { $meta: "searchScore" },
-        encId: { $meta: "searchSequenceToken" },
+        sequenceToken: { $meta: "searchSequenceToken" },
       },
     },
     {
@@ -701,9 +711,12 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   const hasNextPage = docs.length > pageSize;
   const videos = (hasNextPage ? docs.slice(0, pageSize) : docs).map((doc) => ({
     ...doc,
-    encId: base64ToUrlSafe(doc.encId),
+    sequenceToken: base64ToBase64url(doc.sequenceToken),
+    encId: objectIdToBase64url(doc._id),
   }));
-  const nextCursor = hasNextPage ? videos[videos.length - 1].encId : null;
+  const nextCursor = hasNextPage
+    ? videos[videos.length - 1].sequenceToken
+    : null;
 
   const data = { videos, meta: { hasNextPage, nextCursor } };
   return res
