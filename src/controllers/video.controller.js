@@ -675,17 +675,17 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
       },
     },
     {
+      $addFields: {
+        score: { $meta: "searchScore" },
+        encId: { $meta: "searchSequenceToken" },
+      },
+    },
+    {
       $sort: {
-        createdAt: -1,
+        score: -1,
       },
     },
     { $limit: pageSize + 1 }, // fetch one extra to know if there is a next page
-    {
-      $addFields: {
-        score: { $meta: "searchScore" },
-        paginationToken: { $meta: "searchSequenceToken" },
-      },
-    },
     {
       $lookup: {
         from: "users",
@@ -699,10 +699,11 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   ]);
 
   const hasNextPage = docs.length > pageSize;
-  const videos = hasNextPage ? docs.slice(0, pageSize) : docs;
-  const nextCursor = hasNextPage
-    ? base64ToUrlSafe(videos[videos.length - 1].paginationToken)
-    : null;
+  const videos = (hasNextPage ? docs.slice(0, pageSize) : docs).map((doc) => ({
+    ...doc,
+    encId: base64ToUrlSafe(doc.encId),
+  }));
+  const nextCursor = hasNextPage ? videos[videos.length - 1].encId : null;
 
   const data = { videos, meta: { hasNextPage, nextCursor } };
   return res
