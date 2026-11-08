@@ -405,7 +405,8 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
 
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const { id: encId } = req.params;
+  const id = encId ? base64urlToObjectId(encId.trim()) : undefined;
 
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "GET VIDEO ERROR:: Valid video id required");

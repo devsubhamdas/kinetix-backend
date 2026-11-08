@@ -5,16 +5,20 @@ import ApiResponse from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
 import Video from "../models/video.model.js";
 import CommunityPost from "../models/communityPost.model.js";
+import { base64urlToObjectId } from "../utils/helper.js";
 
 // ADD COMMENT
 const addComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
-  const { refType, refId } = req.params;
+  const { refType, refId: rawRefId } = req.params;
+
+  const refId = rawRefId ? base64urlToObjectId(rawRefId.trim()) : undefined;
+
   if (!content) {
     throw new ApiError(400, "COMMENT ADD ERROR:: Content is required");
   }
 
-  if (!refType || !refId) {
+  if (!refType || !refId || !mongoose.isValidObjectId(refId)) {
     throw new ApiError(
       400,
       "COMMENT ADD ERROR:: RefType and RefId are required"
@@ -75,14 +79,19 @@ const addComment = asyncHandler(async (req, res) => {
 // UPDATE COMMENT
 const updateComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
-  const { id } = req.params;
+  const { id: rawId } = req.params;
+
+  const id = rawId ? base64urlToObjectId(rawId.trim()) : undefined;
 
   if (!content) {
     throw new ApiError(400, "COMMENT UPDATE ERROR:: Content is required");
   }
 
-  if (!id) {
-    throw new ApiError(400, "COMMENT UPDATE ERROR:: Comment id is required");
+  if (!id || !mongoose.isValidObjectId(id)) {
+    throw new ApiError(
+      400,
+      "COMMENT UPDATE ERROR:: Comment id is missing or invalid objectId"
+    );
   }
 
   const [user] = await Comment.aggregate([
@@ -158,9 +167,15 @@ const updateComment = asyncHandler(async (req, res) => {
 
 // DELETE COMMENT
 const deleteComment = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  if (!id) {
-    throw new ApiError(400, "COMMENT DELETE ERROR:: Comment Id is required");
+  const { id: rawId } = req.params;
+
+  const id = rawId ? base64urlToObjectId(rawId.trim()) : undefined;
+
+  if (!id || !mongoose.isValidObjectId(id)) {
+    throw new ApiError(
+      400,
+      "COMMENT DELETE ERROR:: Comment Id is missing or invalid object id"
+    );
   }
 
   const [user] = await Comment.aggregate([
@@ -230,9 +245,14 @@ const deleteComment = asyncHandler(async (req, res) => {
 
 // GET ALL COMMENTS
 const getAllCommentsByRefId = asyncHandler(async (req, res) => {
-  const { refId } = req.params;
-  if (!refId) {
-    throw new ApiError(400, "GET ALL COMMENTS ERROR:: RefId is required");
+  const { refId: rawRefId } = req.params;
+  const refId = rawRefId ? base64urlToObjectId(rawRefId.trim()) : undefined;
+
+  if (!refId || !mongoose.isValidObjectId(refId)) {
+    throw new ApiError(
+      400,
+      "GET ALL COMMENTS ERROR:: RefId is missing or invalid objectId"
+    );
   }
 
   const comments = await Comment.aggregate([
