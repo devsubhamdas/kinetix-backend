@@ -80,7 +80,7 @@ app.get("/ready", async (req, res) => {
 // IMPORT ROUTES
 import userRouter from "./routes/user.route.js";
 import channelRouter from "./routes/channel.route.js";
-import watchRouter from "./routes/watch.route.js";
+import videoRouter from "./routes/video.route.js";
 import postRouter from "./routes/post.route.js";
 import commentRouter from "./routes/comment.route.js";
 import recommendRouter from "./routes/recommend.route.js";
@@ -91,7 +91,7 @@ import searchRouter from "./routes/search.route.js";
 // DECLARE ROUTES
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/channel", channelRouter);
-app.use("/api/v1/watch", watchRouter);
+app.use("/api/v1/videos", videoRouter);
 app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/recommend", recommendRouter);

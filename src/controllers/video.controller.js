@@ -405,18 +405,32 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
 
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
-  const { username, id } = req.params;
+  const { id } = req.params;
+
+  if (!id || !mongoose.isValidObjectId(id)) {
+    throw new ApiError(400, "GET VIDEO ERROR:: Valid video id required");
+  }
 
   const token =
-    req.cookies?.accessToken || req.header("Authorization").split(" ")[1];
+    req.cookies?.accessToken || req.header("Authorization")?.split(" ")[1];
 
-  const { _id: reqUid } = token
-    ? jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)
-    : { _id: undefined };
+  const reqUid = token
+    ? (function () {
+        try {
+          return jwt.verify(token, process.env.ACCESS_TOKEN_SECRET)._id;
+        } catch (error) {
+          console.error(
+            "GET VIDEO BY ID:: requrest user id jwt verify error",
+            error
+          );
+          return undefined;
+        }
+      })()
+    : undefined;
 
-  if (!username || !id) {
-    throw new ApiError(400, "GET VIDEO ERROR:: Username and id required");
-  }
+  const reqUserObjectId = reqUid
+    ? new mongoose.Types.ObjectId(String(reqUid))
+    : null;
 
   const [video] = await Video.aggregate([
     {
@@ -476,10 +490,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                         $and: [
                           { $eq: ["$$impression.isLiked", true] },
                           {
-                            $eq: [
-                              "$$impression.owner",
-                              { $toObjectId: reqUid },
-                            ],
+                            $eq: ["$$impression.owner", reqUserObjectId],
                           },
                         ],
                       },
@@ -506,10 +517,7 @@ const getVideoById = asyncHandler(async (req, res) => {
                         $and: [
                           { $eq: ["$$impression.isLiked", false] },
                           {
-                            $eq: [
-                              "$$impression.owner",
-                              { $toObjectId: reqUid },
-                            ],
+                            $eq: ["$$impression.owner", reqUserObjectId],
                           },
                         ],
                       },
@@ -523,11 +531,6 @@ const getVideoById = asyncHandler(async (req, res) => {
             else: false,
           },
         },
-      },
-    },
-    {
-      $match: {
-        "owner.username": username,
       },
     },
     {
