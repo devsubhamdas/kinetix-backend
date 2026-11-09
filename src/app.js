@@ -8,6 +8,7 @@ const app = express();
 app.set("trust proxy", 1); //REQUIRED for HTTPS on EB
 
 // MIDDLEWARE CONFIGURATION
+/* cors configuration */
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
   .map((origin) => origin.trim().replace(/\/+$/, "")) // trim spaces and trailing slashes
@@ -31,6 +32,8 @@ app.use(
     credentials: true,
   })
 );
+
+app.use("/api", apiLimiter); // limit before parsing the body
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
@@ -77,6 +80,17 @@ app.get("/ready", async (req, res) => {
   }
 });
 
+// Stricter limit on auth endpoints
+app.use(
+  [
+    "/api/v1/user/login",
+    "/api/v1/user/register",
+    "/api/v1/user/forgot-password",
+    "/api/v1/user/update/password",
+  ],
+  authLimiter
+);
+
 // IMPORT ROUTES
 import userRouter from "./routes/user.route.js";
 import channelRouter from "./routes/channel.route.js";
@@ -101,6 +115,7 @@ app.use("/api/v1/search", searchRouter);
 
 // Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+import { apiLimiter, authLimiter } from "./middlewares/rateLimit.middleware.js";
 app.use(errorHandler);
 
 export default app;
