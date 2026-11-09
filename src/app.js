@@ -4,6 +4,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import mongoose from "mongoose";
 
+import { apiLimiter, authLimiter } from "./middlewares/rateLimit.middleware.js";
+import { securityHeaders } from "./middlewares/helmet.middleware.js";
+import { sanitizeInput } from "./middlewares/sanitizeHtml.middleware.js";
+import {
+  csrfProtection,
+  csrfTokenHandler,
+} from "./middlewares/csrf.middleware.js";
+
 const app = express();
 app.set("trust proxy", 1); //REQUIRED for HTTPS on EB
 app.disable("x-powered-by");
@@ -42,6 +50,21 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 app.use(sanitizeInput); // strip HTML + $operators from body/query/params
+
+// CSRF: client fetches a token once, then sends it in the X-CSRF-Token header
+app.get("/api/v1/csrf-token", csrfTokenHandler);
+app.use("/api", csrfProtection); // GET/HEAD/OPTIONS are ignored automatically
+
+// Stricter limit on auth endpoints
+app.use(
+  [
+    "/api/v1/user/login",
+    "/api/v1/user/register",
+    "/api/v1/user/forgot-password",
+    "/api/v1/user/update/password",
+  ],
+  authLimiter
+);
 
 // HEALTH ROUTES
 app.get("/health", (req, res) => {
@@ -84,17 +107,6 @@ app.get("/ready", async (req, res) => {
   }
 });
 
-// Stricter limit on auth endpoints
-app.use(
-  [
-    "/api/v1/user/login",
-    "/api/v1/user/register",
-    "/api/v1/user/forgot-password",
-    "/api/v1/user/update/password",
-  ],
-  authLimiter
-);
-
 // IMPORT ROUTES
 import userRouter from "./routes/user.route.js";
 import channelRouter from "./routes/channel.route.js";
@@ -119,9 +131,6 @@ app.use("/api/v1/search", searchRouter);
 
 // Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
-import { apiLimiter, authLimiter } from "./middlewares/rateLimit.middleware.js";
-import { securityHeaders } from "./middlewares/helmet.middleware.js";
-import { sanitizeInput } from "./middlewares/sanitizeHtml.middleware.js";
 app.use(errorHandler);
 
 export default app;
