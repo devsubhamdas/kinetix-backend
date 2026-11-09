@@ -6,8 +6,11 @@ import mongoose from "mongoose";
 
 const app = express();
 app.set("trust proxy", 1); //REQUIRED for HTTPS on EB
+app.disable("x-powered-by");
 
 // MIDDLEWARE CONFIGURATION
+app.use(securityHeaders);
+
 /* cors configuration */
 const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "")
   .split(",")
@@ -116,6 +119,7 @@ app.use("/api/v1/search", searchRouter);
 // Error-handling middleware: Catches and formats custom ApiError instances or generic errors to json.
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { apiLimiter, authLimiter } from "./middlewares/rateLimit.middleware.js";
+import { securityHeaders } from "./middlewares/helmet.middleware.js";
 app.use(errorHandler);
 
 export default app;
