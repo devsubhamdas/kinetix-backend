@@ -5,14 +5,13 @@ import ApiResponse from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
 import Video from "../models/video.model.js";
 import CommunityPost from "../models/communityPost.model.js";
-import { base64urlToObjectId } from "../utils/helper.js";
+import { resolveRefId } from "../utils/helper.js";
 
 // ADD COMMENT
 const addComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
   const { refType, refId: rawRefId } = req.params;
-
-  const refId = rawRefId ? base64urlToObjectId(rawRefId.trim()) : undefined;
+  const refId = resolveRefId(rawRefId);
 
   if (!content) {
     throw new ApiError(400, "COMMENT ADD ERROR:: Content is required");
@@ -80,8 +79,7 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
   const { id: rawId } = req.params;
-
-  const id = rawId ? base64urlToObjectId(rawId.trim()) : undefined;
+  const id = resolveRefId(rawId);
 
   if (!content) {
     throw new ApiError(400, "COMMENT UPDATE ERROR:: Content is required");
@@ -168,8 +166,7 @@ const updateComment = asyncHandler(async (req, res) => {
 // DELETE COMMENT
 const deleteComment = asyncHandler(async (req, res) => {
   const { id: rawId } = req.params;
-
-  const id = rawId ? base64urlToObjectId(rawId.trim()) : undefined;
+  const id = resolveRefId(rawId);
 
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new ApiError(
@@ -246,7 +243,7 @@ const deleteComment = asyncHandler(async (req, res) => {
 // GET ALL COMMENTS
 const getAllCommentsByRefId = asyncHandler(async (req, res) => {
   const { refId: rawRefId } = req.params;
-  const refId = rawRefId ? base64urlToObjectId(rawRefId.trim()) : undefined;
+  const refId = resolveRefId(rawRefId);
 
   if (!refId || !mongoose.isValidObjectId(refId)) {
     throw new ApiError(

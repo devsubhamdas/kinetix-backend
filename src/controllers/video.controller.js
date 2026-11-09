@@ -9,7 +9,7 @@ import {
   parseTags,
   base64ToBase64url,
   objectIdToBase64url,
-  base64urlToObjectId,
+  resolveRefId,
 } from "../utils/helper.js";
 import {
   uploadOnCloudinary,
@@ -343,7 +343,7 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const { limit = 10, cursor: rawCursor } = req.query;
   const pageSize = Math.min(limit || 10, 50);
-  const cursor = rawCursor ? base64urlToObjectId(rawCursor.trim()) : undefined;
+  const cursor = resolveRefId(rawCursor);
 
   const channel = await User.findOne({ username });
 
@@ -406,7 +406,7 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
   const { id: encId } = req.params;
-  const id = encId ? base64urlToObjectId(encId.trim()) : undefined;
+  const id = resolveRefId(encId);
 
   if (!id || !mongoose.isValidObjectId(id)) {
     throw new ApiError(400, "GET VIDEO ERROR:: Valid video id required");
@@ -568,7 +568,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 const getVideosByRecommendation = asyncHandler(async (req, res) => {
   const { limit = 10, cursor: rawCursor } = req.query;
   const pageSize = Math.min(limit || 10, 50);
-  const cursor = rawCursor ? base64urlToObjectId(rawCursor.trim()) : undefined;
+  const cursor = resolveRefId(rawCursor);
 
   if (cursor && !mongoose.isValidObjectId(cursor)) {
     throw new ApiError(400, "GET VIDEOS BY SEARCH-TERM ERROR:: Invalid cursor");
