@@ -41,6 +41,7 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
+app.use(sanitizeInput); // strip HTML + $operators from body/query/params
 
 // HEALTH ROUTES
 app.get("/health", (req, res) => {
@@ -120,6 +121,7 @@ app.use("/api/v1/search", searchRouter);
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { apiLimiter, authLimiter } from "./middlewares/rateLimit.middleware.js";
 import { securityHeaders } from "./middlewares/helmet.middleware.js";
+import { sanitizeInput } from "./middlewares/sanitizeHtml.middleware.js";
 app.use(errorHandler);
 
 export default app;
