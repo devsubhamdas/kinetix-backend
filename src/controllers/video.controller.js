@@ -9,7 +9,7 @@ import {
   parseTags,
   base64ToBase64url,
   objectIdToBase64url,
-  resolveRefId,
+  resolveRefOrCursorId,
 } from "../utils/helper.js";
 import {
   uploadOnCloudinary,
@@ -343,12 +343,23 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const { limit = 10, cursor: rawCursor } = req.query;
   const pageSize = Math.min(limit || 10, 50);
-  const cursor = resolveRefId(rawCursor);
+
+  if (!username) {
+    throw new ApiError(400, "CHANNEL ERROR:: username/channelname is required");
+  }
+
+  const cursor = resolveRefOrCursorId(
+    rawCursor,
+    "GET VIDEOS BY CHANNEL_NAME ERROR"
+  );
 
   const channel = await User.findOne({ username });
 
-  if (!username || !channel) {
-    throw new ApiError(400, "CHANNEL ERROR:: Channel not found");
+  if (!channel) {
+    throw new ApiError(
+      400,
+      "GET VIDEOS BY CHANNELNAME ERROR:: Channel not found"
+    );
   }
 
   if (cursor && !mongoose.isValidObjectId(cursor)) {
@@ -406,10 +417,10 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
 // GET VIDEO BY ID
 const getVideoById = asyncHandler(async (req, res) => {
   const { id: encId } = req.params;
-  const id = resolveRefId(encId);
+  const id = resolveRefOrCursorId(encId, "GET VIDEOS BY ID ERROR");
 
-  if (!id || !mongoose.isValidObjectId(id)) {
-    throw new ApiError(400, "GET VIDEO ERROR:: Valid video id required");
+  if (!id) {
+    throw new ApiError(400, "GET VIDEO BY ID ERROR:: Valid video id required");
   }
 
   const token =
@@ -568,11 +579,10 @@ const getVideoById = asyncHandler(async (req, res) => {
 const getVideosByRecommendation = asyncHandler(async (req, res) => {
   const { limit = 10, cursor: rawCursor } = req.query;
   const pageSize = Math.min(limit || 10, 50);
-  const cursor = resolveRefId(rawCursor);
-
-  if (cursor && !mongoose.isValidObjectId(cursor)) {
-    throw new ApiError(400, "GET VIDEOS BY SEARCH-TERM ERROR:: Invalid cursor");
-  }
+  const cursor = resolveRefOrCursorId(
+    rawCursor,
+    "GET VIDEOS BY RECOMMENDATION ERROR"
+  );
 
   const match = { isPublished: true };
   if (cursor) match._id = { $lt: new mongoose.Types.ObjectId(String(cursor)) };

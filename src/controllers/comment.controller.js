@@ -5,54 +5,37 @@ import ApiResponse from "../utils/ApiResponse.js";
 import Comment from "../models/comment.model.js";
 import Video from "../models/video.model.js";
 import CommunityPost from "../models/communityPost.model.js";
-import { resolveRefId } from "../utils/helper.js";
+import { resolveRefOrCursorId } from "../utils/helper.js";
 
 // ADD COMMENT
 const addComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
   const { refType, refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
 
-  if (!content) {
-    throw new ApiError(400, "COMMENT ADD ERROR:: Content is required");
-  }
-
-  if (!refType || !refId || !mongoose.isValidObjectId(refId)) {
+  if (!refType || !rawRefId) {
     throw new ApiError(
       400,
       "COMMENT ADD ERROR:: RefType and RefId are required"
     );
   }
 
+  if (!content) {
+    throw new ApiError(400, "COMMENT ADD ERROR:: Content is required");
+  }
+
+  const refId = resolveRefOrCursorId(rawRefId, "ADD COMMENT ERROR");
+
   // validate reference type
-  const refTypes = ["Video", "CommunityPost", "Comment"];
-  if (!refTypes.includes(refType)) {
+  const models = { Video, CommunityPost, Comment };
+  const Model = models[refType];
+
+  if (!Model) {
     throw new ApiError(404, "COMMENT ADD ERROR:: Invalid refType");
   }
 
-  // validate reference id
-  if (refTypes === "Video") {
-    const video = await Video.findById(refId);
-    if (!video) {
-      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid video refId");
-    }
-  }
-
-  if (refTypes === "CommunityPost") {
-    const communityPost = await CommunityPost.findById(refId);
-    if (!communityPost) {
-      throw new ApiError(
-        404,
-        "COMMENT ADD ERROR:: Invalid community-post refId"
-      );
-    }
-  }
-
-  if (refTypes === "Comment") {
-    const comment = await Comment.findById(refId);
-    if (!comment) {
-      throw new ApiError(404, "COMMENT ADD ERROR:: Invalid comment refId");
-    }
+  const exists = await Model.exists({ _id: refId });
+  if (!exists) {
+    throw new ApiError(404, `COMMENT ADD ERROR:: Invalid ${refType} refId`);
   }
 
   // create comment
@@ -79,17 +62,13 @@ const addComment = asyncHandler(async (req, res) => {
 const updateComment = asyncHandler(async (req, res) => {
   const { content } = req.body;
   const { id: rawId } = req.params;
-  const id = resolveRefId(rawId);
+  const id = resolveRefOrCursorId(rawId, "UPDATE COMMENT ERROR");
 
+  if (!id) {
+    throw new ApiError(400, "COMMENT UPDATE ERROR:: Comment id is required");
+  }
   if (!content) {
     throw new ApiError(400, "COMMENT UPDATE ERROR:: Content is required");
-  }
-
-  if (!id || !mongoose.isValidObjectId(id)) {
-    throw new ApiError(
-      400,
-      "COMMENT UPDATE ERROR:: Comment id is missing or invalid objectId"
-    );
   }
 
   const [user] = await Comment.aggregate([
@@ -166,13 +145,10 @@ const updateComment = asyncHandler(async (req, res) => {
 // DELETE COMMENT
 const deleteComment = asyncHandler(async (req, res) => {
   const { id: rawId } = req.params;
-  const id = resolveRefId(rawId);
+  const id = resolveRefOrCursorId(rawId, "DELETE COMMENT ERROR");
 
-  if (!id || !mongoose.isValidObjectId(id)) {
-    throw new ApiError(
-      400,
-      "COMMENT DELETE ERROR:: Comment Id is missing or invalid object id"
-    );
+  if (!id) {
+    throw new ApiError(400, "COMMENT DELETE ERROR:: Comment Id is required");
   }
 
   const [user] = await Comment.aggregate([
@@ -243,13 +219,10 @@ const deleteComment = asyncHandler(async (req, res) => {
 // GET ALL COMMENTS
 const getAllCommentsByRefId = asyncHandler(async (req, res) => {
   const { refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
+  const refId = resolveRefOrCursorId(rawRefId, "GET COMMENTS BY REF_ID ERROR");
 
-  if (!refId || !mongoose.isValidObjectId(refId)) {
-    throw new ApiError(
-      400,
-      "GET ALL COMMENTS ERROR:: RefId is missing or invalid objectId"
-    );
+  if (!refId) {
+    throw new ApiError(400, "GET ALL COMMENTS ERROR:: RefId is required");
   }
 
   const comments = await Comment.aggregate([

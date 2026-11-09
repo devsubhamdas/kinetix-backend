@@ -2,13 +2,13 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import Impression from "../models/impression.model.js";
-import { resolveRefId } from "../utils/helper.js";
+import { resolveRefOrCursorId } from "../utils/helper.js";
 import mongoose from "mongoose";
 
 // ADD LIKE
 const addLike = asyncHandler(async (req, res) => {
   const { refType, refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
+  const refId = resolveRefOrCursorId(rawRefId);
 
   if (!refType || !refId) {
     throw new ApiError(400, "ADD LIKE ERROR:: refType and refId is required");
@@ -72,7 +72,7 @@ const addLike = asyncHandler(async (req, res) => {
 // DELETE LIKE
 const deleteLike = asyncHandler(async (req, res) => {
   const { refType, refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
+  const refId = resolveRefOrCursorId(rawRefId);
 
   if (!refType || !refId) {
     throw new ApiError(400, "DELETE LIKE ERROR:: refType and refId required");
@@ -110,7 +110,7 @@ const deleteLike = asyncHandler(async (req, res) => {
 // ADD DISLIKE
 const addDislike = asyncHandler(async (req, res) => {
   const { refType, refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
+  const refId = resolveRefOrCursorId(rawRefId);
 
   if (!refType || !refId) {
     throw new ApiError(400, "ADD DISLIKE ERROR:: refType and refId required");
@@ -177,7 +177,7 @@ const addDislike = asyncHandler(async (req, res) => {
 // DELETE DISLIKE
 const deleteDislike = asyncHandler(async (req, res) => {
   const { refType, refId: rawRefId } = req.params;
-  const refId = resolveRefId(rawRefId);
+  const refId = resolveRefOrCursorId(rawRefId);
 
   if (!refType || !refId) {
     throw new ApiError(

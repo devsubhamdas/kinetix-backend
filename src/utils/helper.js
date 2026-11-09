@@ -35,16 +35,23 @@ const objectIdToBase64url = (str) => {
   return Buffer.from(str, "hex").toString("base64url");
 };
 
-const resolveRefId = (id) => {
-  const rawId = String(id).trim();
+const resolveRefOrCursorId = (id, errorPrefix = "RESOLVE REF_ID ERROR") => {
+  const rawId = String(id ?? "").trim();
   if (!rawId) return null;
+
   if (mongoose.isObjectIdOrHexString(rawId)) return rawId;
+
+  let decoded;
   try {
-    const decoded = base64urlToObjectId(rawId);
-    return mongoose.isValidObjectId(decoded) ? decoded : null;
+    decoded = base64urlToObjectId(rawId);
   } catch {
-    throw new ApiError(400, "RESOLVE REF_ID ERROR:: cannot resolve id");
+    throw new ApiError(400, `${errorPrefix}:: id is not valid base64url`);
   }
+
+  if (!mongoose.isObjectIdOrHexString(decoded)) {
+    throw new ApiError(400, `${errorPrefix}:: id is not a valid ObjectId`);
+  }
+  return String(decoded);
 };
 
 export {
@@ -54,5 +61,5 @@ export {
   base64urlToBase64,
   base64urlToObjectId,
   objectIdToBase64url,
-  resolveRefId,
+  resolveRefOrCursorId,
 };
