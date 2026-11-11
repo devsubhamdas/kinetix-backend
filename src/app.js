@@ -50,9 +50,6 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 app.use(sanitizeInput); // strip HTML + $operators from body/query/params
-
-// CSRF: client fetches a token once, then sends it in the X-CSRF-Token header
-app.get("/api/v1/csrf-token", csrfTokenHandler);
 app.use("/api", csrfProtection); // GET/HEAD/OPTIONS are ignored automatically
 
 // Stricter limit on auth endpoints
@@ -106,6 +103,9 @@ app.get("/ready", async (req, res) => {
     });
   }
 });
+
+// CSRF: client fetches a token once, then sends it in the X-CSRF-Token header
+app.get("/api/v1/csrf-token", csrfTokenHandler);
 
 // IMPORT ROUTES
 import userRouter from "./routes/user.route.js";
