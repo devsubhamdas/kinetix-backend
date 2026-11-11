@@ -698,18 +698,13 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
         ...(cursor && { searchAfter: cursor }), // resume after the last item of the previous batch
       },
     },
+    { $limit: pageSize + 1 }, // fetch one extra to know if there is a next page
     {
       $addFields: {
         score: { $meta: "searchScore" },
         sequenceToken: { $meta: "searchSequenceToken" },
       },
     },
-    {
-      $sort: {
-        score: -1,
-      },
-    },
-    { $limit: pageSize + 1 }, // fetch one extra to know if there is a next page
     {
       $lookup: {
         from: "users",
