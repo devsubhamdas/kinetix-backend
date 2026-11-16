@@ -341,8 +341,10 @@ const updateVideoThumbnail = asyncHandler(async (req, res) => {
 // GET VIDEOS BY CHANNEL NAME
 const getVideosByChannelName = asyncHandler(async (req, res) => {
   const { username } = req.params;
-  const { limit = 10, cursor: rawCursor } = req.query;
+  const { limit = 10, cursor: rawCursor, sortBy = "newest" } = req.query;
   const pageSize = Math.min(limit || 10, 50);
+
+  const sortByValidKeys = ["newest", "oldest", "popular"];
 
   if (!username) {
     throw new ApiError(400, "CHANNEL ERROR:: username/channelname is required");
@@ -369,9 +371,24 @@ const getVideosByChannelName = asyncHandler(async (req, res) => {
   const match = { isPublished: true };
   if (cursor) match._id = { $lt: new mongoose.Types.ObjectId(String(cursor)) };
 
+  const sort = ((sortBy) => {
+    if (!sortBy || !sortByValidKeys.includes(sortBy)) {
+      return { _id: -1 };
+    }
+    if (sortBy === "newest") {
+      return { _id: -1 };
+    }
+    if (sortBy === "oldest") {
+      return { _id: 1 };
+    }
+    if (sortBy === "popular") {
+      return { views: -1 };
+    }
+  })(sortBy);
+
   const docs = await Video.aggregate([
     { $match: { ...match, owner: channel._id } }, // filter by owner up front (uses an index)
-    { $sort: { _id: -1 } },
+    { $sort: { ...sort } },
     { $limit: pageSize + 1 },
     {
       $lookup: {
