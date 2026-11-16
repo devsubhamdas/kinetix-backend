@@ -735,6 +735,33 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
     );
 });
 
+// INCREMENT VIEWS COUNT
+const incrementVideoViewsCount = asyncHandler(async (req, res) => {
+  const { id: rawId } = req.params;
+  const id = resolveRefOrCursorId(rawId, "INCREMENT VIEWS COUNT BY ID ERROR");
+  if (!id) {
+    return new ApiError(400, "video id is required");
+  }
+
+  const result = await Video.updateOne(
+    {
+      _id: id,
+      isPublished: true,
+    },
+    {
+      $inc: {
+        views: 1,
+      },
+    }
+  );
+
+  if (!result.matchedCount) {
+    throw new ApiError(404, "Video not found");
+  }
+
+  return res.status(200).json(new ApiResponse(200, null, "View counted"));
+});
+
 // TOGGLE VIDEO STATUS
 const toggleVideoStatus = asyncHandler(async (req, res) => {});
 
@@ -747,4 +774,5 @@ export {
   getVideoById,
   getVideosByRecommendation,
   getVideosBySearchTerm,
+  incrementVideoViewsCount,
 };
