@@ -740,7 +740,7 @@ const incrementVideoViewsCount = asyncHandler(async (req, res) => {
   const { id: rawId } = req.params;
   const id = resolveRefOrCursorId(rawId, "INCREMENT VIEWS COUNT BY ID ERROR");
   if (!id) {
-    return new ApiError(400, "video id is required");
+    throw new ApiError(400, "video id is required");
   }
 
   const result = await Video.updateOne(
