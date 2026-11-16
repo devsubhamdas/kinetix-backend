@@ -84,7 +84,24 @@ const videoSchema = new Schema(
   { timestamps: true }
 );
 
+// All published videos, sorted by newest
 videoSchema.index({ isPublished: 1, createdAt: -1, _id: -1 });
+
+// User's published videos, sorted by newest
+videoSchema.index({
+  owner: 1,
+  isPublished: 1,
+  createdAt: -1,
+  _id: -1,
+});
+
+// User's published videos, sorted by most viewed
+videoSchema.index({
+  owner: 1,
+  isPublished: 1,
+  views: -1,
+  _id: -1,
+});
 
 videoSchema.plugin(mongooseAggregatePaginate);
 
