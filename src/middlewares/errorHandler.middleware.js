@@ -1,7 +1,7 @@
 import ApiError from "../utils/ApiError.js";
 
 const errorHandler = (err, req, res, __) => {
-  console.error(err);
+  if (process.env.NODE_ENV === "development") console.error(err);
 
   if (err instanceof ApiError) {
     return err.toJson(res);
