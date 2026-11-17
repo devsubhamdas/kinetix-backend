@@ -12,7 +12,8 @@ import {
   updateCoverImage,
   getWatchHistory,
   refreshAccessToken,
-  validateAccessToken
+  validateAccessToken,
+  checkUsernameIsAvailable,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -50,6 +51,9 @@ router
 router
   .route("/update/cover-image")
   .put(verifyJWT, upload.single("coverImage"), updateCoverImage);
+
+// check if the username is available or not
+router.route("/username/is-available").get(checkUsernameIsAvailable);
 
 // get user watch history
 router.route("/watch-history").get(verifyJWT, getWatchHistory);

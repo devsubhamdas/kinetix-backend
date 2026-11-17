@@ -628,6 +628,29 @@ const validateAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
+const checkUsernameIsAvailable = asyncHandler(async (req, res) => {
+  const username = String(req.query.u ?? "")
+    .trim()
+    .toLowerCase();
+
+  if (!username) {
+    throw new ApiError(400, "username is required");
+  }
+
+  const exists = await User.exists({ username });
+  if (exists) {
+    return res
+      .status(409)
+      .json(
+        new ApiResponse(409, { available: false }, "username is not available")
+      );
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { available: true }, "username is available"));
+});
+
 // DELETE ACCOUNT
 const deleteAccount = asyncHandler(async (req, res) => {});
 
@@ -642,6 +665,7 @@ export {
   updateCoverImage,
   getChannelInfoAndStats,
   getWatchHistory,
+  checkUsernameIsAvailable,
   refreshAccessToken,
   validateAccessToken,
 };
