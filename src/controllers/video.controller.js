@@ -17,6 +17,7 @@ import {
 } from "../utils/cloudinary.js";
 import { deleteTempFilesOnError } from "../utils/helper.js";
 import jwt from "jsonwebtoken";
+import SearchTerm from "../models/searchTerm.model.js";
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -660,6 +661,7 @@ const getVideosByRecommendation = asyncHandler(async (req, res) => {
 const getVideosBySearchTerm = asyncHandler(async (req, res) => {
   const { q: term, cursor: rawCursor, limit = 10 } = req.query;
   const cursor = rawCursor ? base64urlToBase64(rawCursor.trim()) : undefined;
+  const pageSize = Math.min(Number(limit) || 10, 50);
 
   if (!term) {
     return res
@@ -669,7 +671,18 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
       );
   }
 
-  const pageSize = Math.min(Number(limit) || 10, 50);
+  // Only record on the first page, not on every "load more" request
+  if (!cursor) {
+    const normalized = term.toLowerCase();
+    SearchTerm.updateOne(
+      { term: normalized },
+      { $setOnInsert: { term: normalized }, $inc: { count: 1 } },
+      { upsert: true }
+    ).catch((err) => {
+      // Ignore duplicate key races, log anything else
+      if (err.code !== 11000) console.error("SearchTerm save failed: ", err);
+    });
+  }
 
   const docs = await Video.aggregate([
     {
