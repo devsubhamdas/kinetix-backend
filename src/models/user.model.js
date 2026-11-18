@@ -2,6 +2,41 @@ import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
+const contentGenres = [
+  "creator",
+  "adventure",
+  "music",
+  "gaming",
+  "education",
+  "comedy",
+  "news",
+  "sports",
+  "technology",
+  "travel",
+  "lifestyle",
+  "fashion",
+  "food & cooking",
+  "health & fitness",
+  "diy & crafts",
+  "animation",
+  "documentary",
+  "movies & entertainment",
+  "vlogs",
+  "science",
+  "history",
+  "motivational & self-help",
+  "podcasts & interviews",
+  "live streams",
+  "art & design",
+  "cars & automotive",
+  "business & finance",
+  "nature & wildlife",
+  "kids & family",
+  "horror & mystery",
+  "reviews & unboxings",
+  "tutorials & how-to",
+];
+
 const userSchema = new Schema(
   {
     username: {
@@ -10,7 +45,6 @@ const userSchema = new Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     email: {
       type: String,
@@ -45,40 +79,7 @@ const userSchema = new Schema(
     },
     contentGenre: {
       type: String,
-      enum: [
-        "creator",
-        "adventure",
-        "music",
-        "gaming",
-        "education",
-        "comedy",
-        "news",
-        "sports",
-        "technology",
-        "travel",
-        "lifestyle",
-        "fashion",
-        "food & cooking",
-        "health & fitness",
-        "diy & crafts",
-        "animation",
-        "documentary",
-        "movies & entertainment",
-        "vlogs",
-        "science",
-        "history",
-        "motivational & self-help",
-        "podcasts & interviews",
-        "live streams",
-        "art & design",
-        "cars & automotive",
-        "business & finance",
-        "nature & wildlife",
-        "kids & family",
-        "horror & mystery",
-        "reviews & unboxings",
-        "tutorials & how-to",
-      ],
+      enum: contentGenres,
     },
     tags: [String],
     refreshToken: {
@@ -96,7 +97,7 @@ const userSchema = new Schema(
 
 // encrypt password before save to database
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) next();
+  if (!this.isModified("password")) return next();
 
   this.password = await bcrypt.hash(this.password, 10);
   next();
