@@ -18,6 +18,7 @@ import {
 import { deleteTempFilesOnError } from "../utils/helper.js";
 import jwt from "jsonwebtoken";
 import SearchTerm from "../models/searchTerm.model.js";
+import Subscription from "../models/subscription.model.js";
 
 // UPLOAD VIDEO
 const uploadVideo = asyncHandler(async (req, res) => {
@@ -765,6 +766,107 @@ const getVideosBySearchTerm = asyncHandler(async (req, res) => {
     );
 });
 
+// GET VIDEOS BY SUBSCRIPTIONS
+const getVideosBySubscribedChannels = asyncHandler(async (req, res) => {
+  const { limit = 10, cursor: rawCursor, sortBy = "newest" } = req.query;
+  const pageSize = Math.min(limit || 10, 50);
+  const cursor = resolveRefOrCursorId(
+    rawCursor,
+    "GET VIDEOS BY RECOMMENDATION ERROR"
+  );
+
+  const SORT_CONFIG = {
+    newest: { field: "createdAt", dir: -1 },
+    oldest: { field: "createdAt", dir: 1 },
+    popular: { field: "views", dir: -1 },
+  };
+
+  const userId = req?.user._id;
+  if (!userId) {
+    throw new ApiError(
+      401,
+      "GET VIDEOS BY SUBSCRIBED CHANNELS ERROR:: user id is required"
+    );
+  }
+
+  if (!Object.hasOwn(SORT_CONFIG, sortBy)) {
+    throw new ApiError(
+      400,
+      `GET VIDEOS BY SUBSCRIBED CHANNELS ERROR:: sortBy must be one of ${Object.keys(SORT_CONFIG).join(", ")}`
+    );
+  }
+
+  const { field, dir } = SORT_CONFIG[sortBy];
+
+  // 1. channels the user subscribes to
+  const channelIds = await Subscription.find({ subscriber: userId }).distinct(
+    "channel"
+  );
+
+  if (channelIds.length === 0) {
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { videos: [], nextCursor: null, hasNextPage: false },
+          "videos by subscribed channels fetched"
+        )
+      );
+  }
+
+  // 2. base filter
+  const match = { owner: { $in: channelIds }, isPublished: true };
+
+  // 3. cursor condition (keyset pagination on [field, _id])
+  if (cursor) {
+    const cursorDoc = await Video.findById(cursor).select(field).lean();
+
+    if (!cursorDoc) {
+      throw new ApiError(
+        400,
+        "GET VIDEOS BY SUBSCRIBED CHANNELS ERROR:: invalid cursor"
+      );
+    }
+
+    const op = dir === -1 ? "$lt" : "$gt";
+    match.$or = [
+      { [field]: { [op]: cursorDoc[field] } },
+      { [field]: cursorDoc[field], _id: { [op]: cursorDoc._id } },
+    ];
+  }
+
+  // 4. match -> sort -> limit (+1 to detect next page) -> then join owner
+  const docs = await Video.aggregate([
+    { $match: match },
+    { $sort: { [field]: dir, _id: dir } },
+    { $limit: pageSize + 1 },
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [{ $project: { username: 1, fullName: 1, avatar: 1 } }],
+      },
+    },
+    { $addFields: { owner: { $first: "$owner" } } },
+  ]);
+
+  const hasNextPage = docs.length > pageSize;
+  const videos = (hasNextPage ? docs.slice(0, pageSize) : docs).map((doc) => ({
+    ...doc,
+    encId: objectIdToBase64url(doc._id),
+  }));
+  const nextCursor = hasNextPage ? videos[videos.length - 1].encId : null;
+
+  const data = { videos, meta: { hasNextPage, nextCursor } };
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, data, "videso by subscribed channels fetched"));
+});
+
 // INCREMENT VIEWS COUNT
 const incrementVideoViewsCount = asyncHandler(async (req, res) => {
   const { id: rawId } = req.params;
@@ -804,5 +906,6 @@ export {
   getVideoById,
   getVideosByRecommendation,
   getVideosBySearchTerm,
+  getVideosBySubscribedChannels,
   incrementVideoViewsCount,
 };
