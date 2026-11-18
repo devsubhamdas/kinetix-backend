@@ -72,4 +72,22 @@ const unsubscribeChannel = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Channel unsubscribed successfully"));
 });
 
-export { subscribeChannel, unsubscribeChannel };
+const getSubscribedChannels = asyncHandler(async (req, res) => {
+  const userId = req?.user._id;
+  if (!userId) {
+    throw ApiError(400, "GET SUBSCRIBED CHANNEL ERROR:: userId is required");
+  }
+  const docs = await Subscription.find({ subscriber: userId });
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { subscribedChannels: docs },
+        "subscribed channels fetched"
+      )
+    );
+});
+
+export { subscribeChannel, unsubscribeChannel, getSubscribedChannels };
