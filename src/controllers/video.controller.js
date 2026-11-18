@@ -487,6 +487,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     },
     {
       $addFields: {
+        encId,
         owner: {
           $first: "$owner",
         },
@@ -566,6 +567,7 @@ const getVideoById = asyncHandler(async (req, res) => {
     },
     {
       $project: {
+        encId: 1,
         videoFile: 1,
         thumbnail: 1,
         title: 1,
