@@ -77,7 +77,10 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
   if (!userId) {
     throw ApiError(400, "GET SUBSCRIBED CHANNEL ERROR:: userId is required");
   }
-  const docs = await Subscription.find({ subscriber: userId });
+  const docs = await Subscription.find({ subscriber: userId })
+    .populate("channel", "_id username avatar")
+    .sort({ createdAt: -1 })
+    .lean();
 
   return res
     .status(200)
